@@ -1,0 +1,23 @@
+{
+  "name": "mes_sms",
+  "version": "1.0.0",
+  "description": "Full-Stack Authentication Template",
+  "main": "index.js",
+  "scripts": {
+    "start": "node backend/server.js",
+    "server": "cd backend && npm run dev",
+    "client": "cd frontend && npm run dev",
+    "dev": "concurrently \"npm run server\" \"npm run client\"",
+    "install-all": "npm install && cd backend && npm install && cd ../frontend && npm install"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "concurrently": "^8.2.2",
+    "csv-parser": "^3.2.0",
+    "mes_sms": "file:",
+    "multer": "^1.4.5-lts.2",
+    "xlsx": "^0.18.5"
+  }
+}

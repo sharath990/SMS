@@ -1,0 +1,141 @@
+/* Class Timing Management Styles */
+
+.class-timing-management-container {
+  padding: 1rem;
+}
+
+/* Filter styles */
+.p-inputgroup {
+  display: flex;
+  align-items: center;
+}
+
+.p-inputgroup .p-inputgroup-addon {
+  background: #f8f9fa;
+  color: #6c757d;
+  border: 1px solid #ced4da;
+  border-right: 0;
+  padding: 0.5rem 0.75rem;
+  min-width: 2.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-top-left-radius: 4px;
+  border-bottom-left-radius: 4px;
+}
+
+.p-inputgroup .p-inputtext {
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+}
+
+/* Search input group specific styles */
+.search-input-group {
+  height: 40px;
+}
+
+.search-input-group .p-inputgroup-addon {
+  padding: 0 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+}
+
+/* Badge styles */
+.p-badge {
+  border-radius: 4px;
+  padding: 0.25rem 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.p-badge-info {
+  background-color: #3b82f6;
+  color: #ffffff;
+}
+
+.p-badge-warning {
+  background-color: #f59e0b;
+  color: #ffffff;
+}
+
+.p-badge-success {
+  background-color: #10b981;
+  color: #ffffff;
+}
+
+.p-badge-danger {
+  background-color: #ef4444;
+  color: #ffffff;
+}
+
+.p-badge-primary {
+  background-color: #6366f1;
+  color: #ffffff;
+}
+
+.p-badge-secondary {
+  background-color: #64748b;
+  color: #ffffff;
+}
+
+/* Card styles */
+.card {
+  background: #ffffff;
+  border-radius: 0.5rem;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* Table styles */
+.p-datatable-sm .p-datatable-thead > tr > th {
+  padding: 0.75rem 1rem;
+  font-weight: 600;
+}
+
+.p-datatable-sm .p-datatable-tbody > tr > td {
+  padding: 0.75rem 1rem;
+}
+
+/* Button styles */
+.p-button-sm {
+  font-size: 0.875rem;
+  padding: 0.4rem 0.8rem;
+}
+
+/* Dialog styles */
+.p-dialog .p-dialog-header {
+  padding: 1.25rem 1.5rem;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.p-dialog .p-dialog-content {
+  padding: 1.5rem;
+}
+
+.p-dialog .p-dialog-footer {
+  padding: 1.25rem 1.5rem;
+  border-top: 1px solid #e5e7eb;
+}
+
+/* Form field styles */
+.field {
+  margin-bottom: 1.5rem;
+}
+
+.field label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+}
+
+.field .p-inputtext,
+.field .p-dropdown,
+.field .p-inputtextarea,
+.field .p-inputnumber {
+  width: 100%;
+}
+
+.text-danger {
+  color: #ef4444;
+}

@@ -1,0 +1,160 @@
+/* DataTable Styles */
+
+/* Table container */
+.p-datatable {
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+/* Table header */
+.p-datatable .p-datatable-header {
+  background-color: var(--surface-card);
+  border-bottom: 1px solid var(--surface-border);
+  padding: 1rem;
+}
+
+/* Table footer */
+.p-datatable .p-datatable-footer {
+  background-color: var(--surface-card);
+  border-top: 1px solid var(--surface-border);
+  padding: 1rem;
+}
+
+/* Table header cells */
+.p-datatable .p-datatable-thead > tr > th {
+  background-color: var(--surface-section);
+  color: var(--text-color);
+  font-weight: 600;
+  padding: 0.75rem 1rem;
+  border-width: 0 0 1px 0;
+  border-color: var(--surface-border);
+}
+
+/* Table body cells */
+.p-datatable .p-datatable-tbody > tr > td {
+  padding: 0.75rem 1rem;
+  border-width: 0 0 1px 0;
+  border-color: var(--surface-border);
+}
+
+/* Hover effect */
+.p-datatable.p-datatable-hoverable-rows .p-datatable-tbody > tr:not(.p-highlight):hover {
+  background-color: var(--surface-hover);
+  color: var(--text-color);
+}
+
+/* Selected row */
+.p-datatable .p-datatable-tbody > tr.p-highlight {
+  background-color: var(--primary-50);
+  color: var(--primary-700);
+}
+
+/* Striped rows */
+.p-datatable .p-datatable-tbody > tr:nth-child(even) {
+  background-color: var(--surface-ground);
+}
+
+/* Paginator */
+.p-paginator {
+  background-color: var(--surface-card);
+  border-width: 0;
+  padding: 0.5rem 1rem;
+}
+
+.p-paginator .p-paginator-pages .p-paginator-page.p-highlight {
+  background-color: var(--primary-color);
+  color: var(--primary-color-text);
+}
+
+/* Responsive styles */
+@media screen and (max-width: 960px) {
+  .p-datatable-responsive .p-datatable-tbody > tr > td {
+    text-align: left;
+    display: block;
+    width: 100%;
+    float: left;
+    clear: left;
+    border: 0 none;
+  }
+
+  .p-datatable-responsive .p-datatable-tbody > tr > td .p-column-title {
+    padding: 0.4rem;
+    min-width: 30%;
+    display: inline-block;
+    margin: -0.4rem 1rem -0.4rem -0.4rem;
+    font-weight: bold;
+  }
+}
+
+/* Badge styles */
+.p-badge {
+  border-radius: 10px;
+  padding: 0.25rem 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  display: inline-block;
+}
+
+.p-badge-info {
+  background-color: var(--blue-500);
+  color: var(--blue-50);
+}
+
+.p-badge-success {
+  background-color: var(--green-500);
+  color: var(--green-50);
+}
+
+.p-badge-warning {
+  background-color: var(--orange-500);
+  color: var(--orange-50);
+}
+
+.p-badge-danger {
+  background-color: var(--red-500);
+  color: var(--red-50);
+}
+
+.p-badge-secondary {
+  background-color: var(--gray-500);
+  color: var(--gray-50);
+}
+
+.p-badge-primary {
+  background-color: var(--primary-500);
+  color: var(--primary-50);
+}
+
+/* Toolbar styles */
+.p-toolbar {
+  background-color: var(--surface-card);
+  border: 1px solid var(--surface-border);
+  border-radius: 6px;
+  padding: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+/* Filter inputs */
+.p-inputtext-sm {
+  font-size: 0.875rem;
+  padding: 0.4rem 0.5rem;
+}
+
+/* Action buttons */
+.p-button-sm {
+  font-size: 0.875rem;
+  padding: 0.4rem;
+}
+
+/* Loading overlay */
+.p-datatable .p-datatable-loading-overlay {
+  background-color: rgba(255, 255, 255, 0.8);
+}
+
+/* Empty message */
+.p-datatable .p-datatable-emptymessage td {
+  text-align: center;
+  padding: 2rem;
+  color: var(--text-color-secondary);
+}

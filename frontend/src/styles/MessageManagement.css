@@ -1,0 +1,345 @@
+/* Message Management Styles */
+
+.message-template-management-container,
+.message-sending-container {
+  padding: 1rem;
+}
+
+/* DataTable styles */
+.p-datatable .p-datatable-header {
+  background: #f8f9fa;
+  border: 1px solid #dee2e6;
+  border-width: 1px 0 1px 0;
+  padding: 1rem;
+  font-weight: 600;
+}
+
+.p-datatable .p-datatable-thead > tr > th {
+  background: #f8f9fa;
+  color: #495057;
+  font-weight: 600;
+  padding: 0.75rem 1rem;
+}
+
+.p-datatable .p-datatable-tbody > tr {
+  background: #ffffff;
+  color: #495057;
+  transition: box-shadow 0.2s;
+}
+
+.p-datatable .p-datatable-tbody > tr:hover {
+  background: #e9ecef;
+  cursor: pointer;
+}
+
+/* Form styles */
+.field {
+  margin-bottom: 1rem;
+}
+
+.field label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+}
+
+.field small {
+  color: #6c757d;
+}
+
+/* Tag styles */
+.p-tag {
+  padding: 0.25rem 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  border-radius: 4px;
+}
+
+.p-tag.p-tag-success {
+  background: #22c55e;
+  color: #ffffff;
+}
+
+.p-tag.p-tag-danger {
+  background: #ef4444;
+  color: #ffffff;
+}
+
+.p-tag.p-tag-info {
+  background: #3b82f6;
+  color: #ffffff;
+}
+
+.p-tag.p-tag-warning {
+  background: #f59e0b;
+  color: #ffffff;
+}
+
+.p-tag.p-tag-help {
+  background: #a855f7;
+  color: #ffffff;
+}
+
+.p-tag.p-tag-secondary {
+  background: #64748b;
+  color: #ffffff;
+}
+
+/* Button styles */
+.p-button {
+  font-weight: 600;
+}
+
+.p-button.p-button-sm {
+  font-size: 0.875rem;
+  padding: 0.4rem 0.8rem;
+}
+
+/* Navigation buttons */
+.message-navigation-buttons {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 1.5rem;
+  padding: 0.5rem;
+}
+
+.message-navigation-buttons .p-button {
+  min-width: 120px;
+  padding: 0.75rem 1.25rem;
+  font-weight: 600;
+  border-radius: 6px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* Dialog styles */
+.p-dialog .p-dialog-header {
+  border-bottom: 1px solid #dee2e6;
+  padding: 1.25rem;
+}
+
+.p-dialog .p-dialog-content {
+  padding: 1.25rem;
+}
+
+.p-dialog .p-dialog-footer {
+  border-top: 1px solid #dee2e6;
+  padding: 1.25rem;
+}
+
+/* Filter styles */
+.p-inputgroup {
+  display: flex;
+  align-items: center;
+}
+
+.p-inputgroup .p-inputgroup-addon {
+  background: #f8f9fa;
+  color: #6c757d;
+  border: 1px solid #ced4da;
+  border-right: 0;
+  padding: 0.5rem 0.75rem;
+  min-width: 2.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-top-left-radius: 4px;
+  border-bottom-left-radius: 4px;
+}
+
+.p-inputgroup .p-inputtext {
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+}
+
+/* Search input group specific styles */
+.search-input-group {
+  height: 42px;
+}
+
+.search-input-group .p-inputgroup-addon {
+  padding: 0 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  background-color: #f8f9fa;
+  border-color: #ced4da;
+}
+
+.search-input-group .p-inputgroup-addon i {
+  font-size: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #6c757d;
+}
+
+.search-input-group .p-inputtext {
+  height: 100%;
+  padding-top: 0.5rem;
+  padding-bottom: 0.5rem;
+}
+
+/* Student search styles */
+.student-search-container .p-inputgroup {
+  height: 42px;
+}
+
+.student-search-container .p-inputgroup-addon {
+  background-color: #f8f9fa;
+  border-color: #ced4da;
+  color: #6c757d;
+}
+
+.student-search-container .p-dropdown,
+.student-search-container .p-inputtext {
+  height: 42px;
+}
+
+.student-search-container .p-dropdown .p-dropdown-label {
+  padding-top: 0.6rem;
+  padding-bottom: 0.6rem;
+}
+
+/* Steps styles */
+.p-steps .p-steps-item .p-menuitem-link {
+  background: transparent;
+}
+
+.p-steps .p-steps-item.p-highlight .p-steps-number {
+  background: #3b82f6;
+  color: #ffffff;
+}
+
+/* Card styles */
+.p-card {
+  margin-bottom: 1rem;
+}
+
+.p-card .p-card-body {
+  padding: 1.5rem;
+}
+
+/* Placeholder styles */
+.placeholder-container {
+  background-color: #f8f9fa;
+  border: 1px solid #e9ecef;
+  border-radius: 8px;
+  padding: 1.25rem;
+  margin-bottom: 1.5rem;
+}
+
+.placeholder-container .p-button {
+  margin-bottom: 0.5rem;
+  height: 2.5rem;
+  justify-content: flex-start;
+}
+
+.placeholder-container .p-button .p-button-icon {
+  margin-right: 0.5rem;
+  font-size: 1rem;
+}
+
+.placeholder-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #495057;
+  margin-bottom: 1rem;
+}
+
+.placeholder-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 0.75rem;
+}
+
+/* Message preview styles */
+.message-preview .whitespace-pre-line {
+  white-space: pre-line;
+}
+
+/* Chip styles */
+.p-chip {
+  background: #f8f9fa;
+  color: #495057;
+  border-radius: 16px;
+  padding: 0 0.75rem;
+}
+
+.p-chip .p-chip-text {
+  font-weight: 500;
+}
+
+.p-chip .p-chip-remove-icon {
+  margin-left: 0.5rem;
+}
+
+/* Radio button styles */
+.field-radiobutton {
+  display: flex;
+  align-items: center;
+}
+
+.field-radiobutton .p-radiobutton {
+  margin-right: 0.5rem;
+}
+
+/* Dropdown styles */
+.p-dropdown {
+  width: 100%;
+}
+
+.p-dropdown-panel .p-dropdown-items .p-dropdown-item {
+  padding: 0.75rem 1.25rem;
+}
+
+/* MultiSelect styles */
+.p-multiselect {
+  width: 100%;
+}
+
+.p-multiselect-panel .p-multiselect-items .p-multiselect-item {
+  padding: 0.75rem 1.25rem;
+}
+
+.p-multiselect .p-multiselect-label {
+  padding: 0.75rem 1.25rem;
+}
+
+.p-multiselect-token {
+  margin-right: 0.5rem;
+  margin-bottom: 0.25rem;
+  padding: 0.25rem 0.75rem;
+}
+
+.selection-summary {
+  margin-top: 0.75rem;
+  padding: 0.5rem;
+  background-color: #f8f9fa;
+  border-radius: 6px;
+  font-weight: 500;
+  color: #495057;
+  display: flex;
+  align-items: center;
+}
+
+.selection-summary .pi {
+  margin-right: 0.5rem;
+  color: #3b82f6;
+}
+
+/* Textarea styles */
+.p-inputtextarea {
+  width: 100%;
+}
+
+/* Message type selection styles */
+.message-type-selection .p-card,
+.recipient-selection .p-card {
+  height: 100%;
+}
+
+/* Step content styles */
+.step-content {
+  min-height: 400px;
+}
