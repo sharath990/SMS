@@ -60,33 +60,19 @@ async function startServer() {
       console.log(`Server running on port ${PORT}`);
     });
 
-    // Check for admin user
+    // Run database seeders
     try {
-      const User = require('./models/User');
-      const adminUser = await User.findOne({ email: 'admin@example.com' });
-
-      if (!adminUser) {
-        const bcrypt = require('bcryptjs');
-        const salt = await bcrypt.genSalt(10);
-        const hashedPassword = await bcrypt.hash('password123', salt);
-
-        await User.create({
-          username: 'admin',
-          firstName: 'Admin',
-          lastName: 'User',
-          email: 'admin@example.com',
-          password: hashedPassword,
-          mobileNumber: '1234567890',
-          isAdmin: true
-        });
-
-        console.log('Admin user created');
+      // Check if SEED_DATABASE environment variable is set to true
+      if (process.env.SEED_DATABASE === 'true') {
+        console.log('🌱 Database seeding enabled');
+        const { runSeeders } = require('./seeders/index');
+        await runSeeders();
       } else {
-        console.log('Admin user already exists');
+        console.log('Database seeding disabled. Set SEED_DATABASE=true in .env to enable.');
       }
-    } catch (userError) {
-      console.error('Error checking/creating admin user:', userError);
-      // Continue server operation even if admin user creation fails
+    } catch (seedError) {
+      console.error('Error running database seeders:', seedError);
+      // Continue server operation even if seeding fails
     }
   } catch (error) {
     console.error('Error starting server:', error);
