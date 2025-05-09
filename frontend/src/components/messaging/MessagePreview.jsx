@@ -12,12 +12,32 @@ const MessagePreview = ({ messageData, previewData, onSend, onPrevious, sending 
         return 'All students in the college';
       case 'Stream':
         return `All students in ${messageData.targetDetails.stream} stream`;
+      case 'MultipleStreams':
+        if (messageData.targetDetails.streams && messageData.targetDetails.streams.length > 0) {
+          return `All students in ${messageData.targetDetails.streams.length} selected streams`;
+        }
+        return 'Selected streams';
       case 'Class':
         return `All students in ${messageData.targetDetails.stream} stream, ${messageData.targetDetails.class} class`;
+      case 'MultipleClasses':
+        if (messageData.targetDetails.classes && messageData.targetDetails.classes.length > 0) {
+          return `All students in ${messageData.targetDetails.stream} stream, ${messageData.targetDetails.classes.length} selected classes`;
+        }
+        return 'Selected classes';
       case 'Section':
         return `All students in ${messageData.targetDetails.stream} stream, ${messageData.targetDetails.class} class, Section ${messageData.targetDetails.section}`;
+      case 'MultipleSections':
+        if (messageData.targetDetails.sections && messageData.targetDetails.sections.length > 0) {
+          return `All students in ${messageData.targetDetails.stream} stream, ${messageData.targetDetails.class} class, ${messageData.targetDetails.sections.length} selected sections`;
+        }
+        return 'Selected sections';
       case 'Batch':
         return `All students in ${messageData.targetDetails.batch} batch`;
+      case 'MultipleBatches':
+        if (messageData.targetDetails.batches && messageData.targetDetails.batches.length > 0) {
+          return `All students in ${messageData.targetDetails.batches.length} selected batches`;
+        }
+        return 'Selected batches';
       case 'Individual':
         return `${messageData.recipientIds.length} selected students`;
       default:
@@ -123,19 +143,19 @@ const MessagePreview = ({ messageData, previewData, onSend, onPrevious, sending 
             )}
           </div>
 
-          <Message
-            severity="warn"
-            className="w-full mt-4"
-            content={
-              <div className="flex align-items-center">
-                <i className="pi pi-exclamation-triangle mr-2 text-xl"></i>
-                <span>
-                  You are about to send this message to <strong>{previewData ? previewData.totalRecipients : 0} recipients</strong>.
+          <div className="p-3 border-1 border-round surface-border bg-yellow-50">
+            <div className="flex align-items-center">
+              <i className="pi pi-exclamation-triangle mr-2 text-xl text-yellow-700"></i>
+              <div>
+                <p className="font-medium text-yellow-700 m-0">Important</p>
+                <p className="m-0 mt-1">
+                  You are about to send this message to <strong>{previewData ? previewData.totalRecipients : 0} recipients</strong> via
+                  <strong> {messageData.messageType === 'Both' ? 'SMS and WhatsApp' : messageData.messageType}</strong>.
                   Please review the content carefully before sending.
-                </span>
+                </p>
               </div>
-            }
-          />
+            </div>
+          </div>
         </div>
       </Card>
 

@@ -19,6 +19,15 @@ if (!fs.existsSync(uploadsDir)) {
 // @access  Private/Admin
 router.post('/students', protect, admin, upload.single('file'), async (req, res) => {
   try {
+    // Log the request for debugging
+    console.log('Import request received:', {
+      file: req.file ? {
+        originalname: req.file.originalname,
+        mimetype: req.file.mimetype,
+        size: req.file.size
+      } : 'No file'
+    });
+
     if (!req.file) {
       return res.status(400).json({ message: 'Please upload a file' });
     }
@@ -26,31 +35,93 @@ router.post('/students', protect, admin, upload.single('file'), async (req, res)
     const filePath = req.file.path;
     const fileExt = path.extname(req.file.originalname).toLowerCase();
 
+    // Validate file extension
+    if (!['.csv', '.xlsx', '.xls'].includes(fileExt)) {
+      // Clean up the invalid file
+      if (fs.existsSync(filePath)) {
+        fs.unlinkSync(filePath);
+      }
+      return res.status(400).json({
+        message: `Unsupported file format: ${fileExt}. Please upload a CSV or Excel file (.csv, .xlsx, .xls).`
+      });
+    }
+
+    // Check if file is empty
+    const stats = fs.statSync(filePath);
+    if (stats.size === 0) {
+      // Clean up the empty file
+      fs.unlinkSync(filePath);
+      return res.status(400).json({ message: 'The uploaded file is empty' });
+    }
+
     let results = [];
     let errors = [];
 
-    // Parse file based on extension
-    if (fileExt === '.csv') {
-      // Parse CSV file
-      results = await parseCSV(filePath);
-    } else if (fileExt === '.xlsx' || fileExt === '.xls') {
-      // Parse Excel file
-      results = parseExcel(filePath);
-    } else {
-      return res.status(400).json({ message: 'Unsupported file format' });
+    try {
+      // Parse file based on extension
+      if (fileExt === '.csv') {
+        // Parse CSV file
+        results = await parseCSV(filePath);
+      } else if (fileExt === '.xlsx' || fileExt === '.xls') {
+        // Parse Excel file
+        results = parseExcel(filePath);
+      }
+
+      console.log(`Parsed ${results.length} records from ${fileExt} file`);
+
+      // Check if any records were found
+      if (results.length === 0) {
+        // Clean up the file
+        fs.unlinkSync(filePath);
+        return res.status(400).json({
+          message: 'No records found in the uploaded file. Please check the file format and content.'
+        });
+      }
+    } catch (parseError) {
+      console.error('Error parsing file:', parseError);
+
+      // Clean up the file
+      if (fs.existsSync(filePath)) {
+        fs.unlinkSync(filePath);
+      }
+
+      return res.status(400).json({
+        message: `Error parsing file: ${parseError.message}. Please check the file format and content.`
+      });
     }
 
     // Validate and process each record
     const processedResults = await processStudents(results);
 
-    // Clean up - delete the uploaded file
-    fs.unlinkSync(filePath);
+    console.log('Import processing complete:', {
+      imported: processedResults.imported,
+      errors: processedResults.errors.length
+    });
 
-    res.json({
-      success: true,
+    // Clean up - delete the uploaded file
+    if (fs.existsSync(filePath)) {
+      fs.unlinkSync(filePath);
+    }
+
+    // Determine the appropriate response message
+    let responseMessage = '';
+    let responseStatus = 200;
+
+    if (processedResults.imported > 0 && processedResults.errors.length === 0) {
+      responseMessage = `Successfully imported all ${processedResults.imported} students`;
+    } else if (processedResults.imported > 0 && processedResults.errors.length > 0) {
+      responseMessage = `Partially imported ${processedResults.imported} students with ${processedResults.errors.length} errors`;
+      responseStatus = 207; // Multi-Status
+    } else if (processedResults.imported === 0 && processedResults.errors.length > 0) {
+      responseMessage = `Failed to import any students. Found ${processedResults.errors.length} errors`;
+      responseStatus = 422; // Unprocessable Entity
+    }
+
+    res.status(responseStatus).json({
+      success: processedResults.imported > 0,
       imported: processedResults.imported,
       errors: processedResults.errors,
-      message: `Successfully imported ${processedResults.imported} students with ${processedResults.errors.length} errors`
+      message: responseMessage
     });
   } catch (error) {
     console.error('Error importing students:', error);
@@ -60,7 +131,9 @@ router.post('/students', protect, admin, upload.single('file'), async (req, res)
       fs.unlinkSync(req.file.path);
     }
 
-    res.status(500).json({ message: 'Server error' });
+    res.status(500).json({
+      message: `Server error: ${error.message || 'Unknown error occurred during import'}`
+    });
   }
 });
 
@@ -120,10 +193,20 @@ const processStudents = async (records) => {
   let imported = 0;
   let errors = [];
 
+  console.log(`Processing ${records.length} student records`);
+
   for (let i = 0; i < records.length; i++) {
     const record = records[i];
+    const rowNumber = i + 2; // +2 because of header row and 0-indexing
 
     try {
+      // Log the record being processed (without sensitive data)
+      console.log(`Processing record ${rowNumber}:`, {
+        rollNumber: record.rollNumber,
+        firstName: record.firstName,
+        lastName: record.lastName
+      });
+
       // Check each required field individually for better error messages
       const requiredFields = [
         { field: 'rollNumber', name: 'Roll Number' },
@@ -139,57 +222,119 @@ const processStudents = async (records) => {
       ];
 
       // Check for missing required fields
-      const missingFields = requiredFields.filter(field =>
-        !record[field.field] || record[field.field].toString().trim() === ''
-      );
+      const missingFields = requiredFields.filter(field => {
+        const value = record[field.field];
+        return value === undefined || value === null || value.toString().trim() === '';
+      });
 
       if (missingFields.length > 0) {
         errors.push({
-          row: i + 2, // +2 because of header row and 0-indexing
+          row: rowNumber,
           error: `Missing required fields: ${missingFields.map(f => f.name).join(', ')}`,
-          data: record
+          severity: 'error'
         });
         continue;
+      }
+
+      // Validate roll number format (must be a number)
+      const rollNumber = parseInt(record.rollNumber);
+      if (isNaN(rollNumber)) {
+        errors.push({
+          row: rowNumber,
+          error: 'Roll Number must be a valid number',
+          severity: 'error'
+        });
+        continue;
+      }
+
+      // Validate batch format (must be a number)
+      const batch = parseInt(record.batch);
+      if (isNaN(batch)) {
+        errors.push({
+          row: rowNumber,
+          error: 'Batch must be a valid number (year)',
+          severity: 'error'
+        });
+        continue;
+      }
+
+      // Validate mobile number format (10 digits)
+      const mobileRegex = /^\d{10}$/;
+      if (!mobileRegex.test(record.parentMobile)) {
+        errors.push({
+          row: rowNumber,
+          error: 'Parent Mobile must be a 10-digit number without spaces or special characters',
+          severity: 'error'
+        });
+        continue;
+      }
+
+      // Validate WhatsApp number format if provided
+      if (record.parentWhatsApp && !mobileRegex.test(record.parentWhatsApp)) {
+        errors.push({
+          row: rowNumber,
+          error: 'Parent WhatsApp must be a 10-digit number without spaces or special characters',
+          severity: 'error'
+        });
+        continue;
+      }
+
+      // Validate email format if provided
+      if (record.parentEmail && record.parentEmail.trim() !== '') {
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(record.parentEmail)) {
+          errors.push({
+            row: rowNumber,
+            error: 'Parent Email must be a valid email address',
+            severity: 'error'
+          });
+          continue;
+        }
       }
 
       // Check if student already exists
-      const existingStudent = await Student.findOne({ rollNumber: record.rollNumber });
+      const existingStudent = await Student.findOne({ rollNumber: rollNumber });
       if (existingStudent) {
         errors.push({
-          row: i + 2,
-          error: 'Student with this roll number already exists',
-          data: record
+          row: rowNumber,
+          error: `Student with Roll Number ${rollNumber} already exists`,
+          severity: 'error'
         });
         continue;
       }
 
-      // Create new student
+      // Create new student with validated data
       const student = new Student({
-        rollNumber: record.rollNumber,
-        firstName: record.firstName,
-        lastName: record.lastName,
-        stream: record.stream,
-        class: record.class,
-        section: record.section,
-        batch: record.batch,
-        parentName: record.parentName,
-        parentMobile: record.parentMobile,
-        parentWhatsApp: record.parentWhatsApp || record.parentMobile,
-        parentEmail: record.parentEmail || '',
-        address: record.address || ''
+        rollNumber: rollNumber,
+        firstName: record.firstName.trim(),
+        lastName: record.lastName.trim(),
+        stream: record.stream.trim(),
+        class: record.class.trim(),
+        section: record.section.trim(),
+        batch: batch,
+        parentName: record.parentName.trim(),
+        parentMobile: record.parentMobile.trim(),
+        parentWhatsApp: (record.parentWhatsApp || record.parentMobile).trim(),
+        parentEmail: record.parentEmail ? record.parentEmail.trim() : '',
+        address: record.address ? record.address.trim() : '',
+        isActive: true
       });
 
+      // Save the student record
       await student.save();
+      console.log(`Successfully imported student with Roll Number ${rollNumber}`);
       imported++;
     } catch (error) {
+      console.error(`Error processing record ${rowNumber}:`, error);
       errors.push({
-        row: i + 2,
-        error: error.message,
-        data: record
+        row: rowNumber,
+        error: `Database error: ${error.message}`,
+        severity: 'error'
       });
     }
   }
 
+  console.log(`Import summary: ${imported} imported, ${errors.length} errors`);
   return { imported, errors };
 };
 
