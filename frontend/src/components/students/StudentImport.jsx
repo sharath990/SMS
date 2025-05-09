@@ -8,6 +8,7 @@ import { DataTable } from 'primereact/datatable';
 import { Column } from 'primereact/column';
 import { Tag } from 'primereact/tag';
 import axios from 'axios';
+import '../../styles/StudentImport.css';
 
 const StudentImport = ({ visible, onHide, token, onImportComplete }) => {
   const [uploadedFile, setUploadedFile] = useState(null);
@@ -36,7 +37,7 @@ const StudentImport = ({ visible, onHide, token, onImportComplete }) => {
     try {
       setUploading(true);
       setUploadProgress(0);
-      setError(null);
+      setError(null); // Clear any previous errors
 
       // Create form data
       const formData = new FormData();
@@ -55,17 +56,21 @@ const StudentImport = ({ visible, onHide, token, onImportComplete }) => {
       };
 
       // Send import request
+      console.log('Sending import request with file:', uploadedFile.name);
       const response = await axios.post('http://localhost:5000/api/import/students', formData, config);
+
+      console.log('Import response:', response.data);
 
       // Set import results
       setImportResults(response.data);
 
-      // Reset file upload
-      if (fileUploadRef.current) {
-        fileUploadRef.current.clear();
+      // Only reset the file upload if there were no errors
+      if (response.data.errors.length === 0) {
+        if (fileUploadRef.current) {
+          fileUploadRef.current.clear();
+        }
+        setUploadedFile(null);
       }
-
-      setUploadedFile(null);
 
       // Notify parent component
       if (onImportComplete) {
@@ -73,7 +78,37 @@ const StudentImport = ({ visible, onHide, token, onImportComplete }) => {
       }
     } catch (error) {
       console.error('Error importing students:', error);
-      setError(error.response?.data?.message || 'Failed to import students');
+
+      // Create a more detailed error message
+      let errorMessage = 'Failed to import students';
+
+      if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      } else if (error.message) {
+        errorMessage = `Error: ${error.message}`;
+      }
+
+      setError(errorMessage);
+
+      // Set empty import results to show the error
+      setImportResults({
+        imported: 0,
+        errors: [
+          {
+            row: 'N/A',
+            error: errorMessage,
+            severity: 'error'
+          }
+        ]
+      });
+
+      // Call the onImportComplete callback with the error
+      if (onImportComplete) {
+        onImportComplete({
+          imported: 0,
+          errors: [{ row: 'N/A', error: errorMessage }]
+        });
+      }
     } finally {
       setUploading(false);
     }
@@ -91,11 +126,14 @@ const StudentImport = ({ visible, onHide, token, onImportComplete }) => {
 
       const response = await axios.get(`http://localhost:5000/api/import/template?format=${format}`, config);
 
+      // Get the correct file extension based on format
+      const fileExtension = format === 'excel' ? 'xlsx' : 'csv';
+
       // Create a download link
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement('a');
       link.href = url;
-      link.setAttribute('download', `student_import_template.${format}`);
+      link.setAttribute('download', `student_import_template.${fileExtension}`);
       document.body.appendChild(link);
       link.click();
 
@@ -109,19 +147,19 @@ const StudentImport = ({ visible, onHide, token, onImportComplete }) => {
   };
 
   // Render error severity tag
-  const errorSeverityTemplate = (rowData) => {
+  const errorSeverityTemplate = () => {
     return <Tag severity="error" value="Error" />;
   };
 
   // Dialog footer with action buttons
   const renderFooter = () => {
     return (
-      <div className="flex justify-content-end gap-2">
+      <div className="import-dialog-footer">
         <Button
           label="Cancel"
           icon="pi pi-times"
           className="p-button-outlined p-button-secondary"
-          style={{ padding: '0.5rem 1rem' }}
+          style={{ padding: '0.5rem 1.5rem' }}
           onClick={onHide}
         />
         <Button
@@ -131,7 +169,7 @@ const StudentImport = ({ visible, onHide, token, onImportComplete }) => {
           disabled={!uploadedFile || uploading}
           onClick={handleImport}
           className="p-button-primary p-button-raised"
-          style={{ padding: '0.5rem 1rem' }}
+          style={{ padding: '0.5rem 1.5rem' }}
         />
       </div>
     );
@@ -149,86 +187,132 @@ const StudentImport = ({ visible, onHide, token, onImportComplete }) => {
       }
       modal
       className="p-fluid"
+      contentClassName="p-4" // Added padding to the content
       footer={renderFooter()}
       onHide={onHide}
     >
       <div className="grid">
         <div className="col-12">
-          <div className="flex align-items-center justify-content-between mb-3">
-            <h5 className="m-0">Upload CSV or Excel File</h5>
+          <div className="flex flex-column md:flex-row align-items-start md:align-items-center justify-content-between mb-4 gap-3">
+            <h5 className="m-0 text-lg font-medium">Upload CSV or Excel File</h5>
             <div className="flex gap-2">
               <Button
                 label="CSV Template"
                 icon="pi pi-download"
-                className="p-button-outlined p-button-sm"
+                className="p-button-outlined p-button-secondary template-download-btn"
                 onClick={() => handleDownloadTemplate('csv')}
               />
               <Button
                 label="Excel Template"
                 icon="pi pi-download"
-                className="p-button-outlined p-button-sm"
+                className="p-button-outlined p-button-secondary template-download-btn"
                 onClick={() => handleDownloadTemplate('excel')}
               />
             </div>
           </div>
 
-          <FileUpload
-            ref={fileUploadRef}
-            mode="basic"
-            name="file"
-            url="/"
-            accept=".csv,.xlsx,.xls"
-            maxFileSize={10000000}
-            customUpload
-            uploadHandler={onFileSelect}
-            chooseLabel="Select File"
-            className="mb-3"
-          />
+          <div className="p-field mb-4">
+            <FileUpload
+              ref={fileUploadRef}
+              mode="basic"
+              name="file"
+              url="/"
+              accept=".csv,.xlsx,.xls"
+              maxFileSize={10000000}
+              customUpload
+              uploadHandler={onFileSelect}
+              chooseLabel="Select File"
+              className="mb-3 custom-file-upload"
+              style={{
+                width: '100%'
+              }}
+              chooseOptions={{
+                className: 'p-button-primary',
+                style: {
+                  padding: '0.5rem 1.5rem',
+                  height: '2.5rem'
+                }
+              }}
+            />
+            <small className="text-secondary block mt-1">
+              Supported formats: CSV, Excel (.xlsx, .xls) - Max size: 10MB
+            </small>
+            <div className="mt-3 p-3 border-1 border-round surface-border bg-yellow-50">
+              <p className="m-0 text-yellow-800">
+                <i className="pi pi-info-circle mr-2"></i>
+                <strong>Note:</strong> All fields are required except for Parent Email and Address.
+              </p>
+            </div>
+          </div>
 
           {uploadedFile && (
-            <div className="flex align-items-center gap-2 mb-3">
-              <i className="pi pi-file" />
-              <span>{uploadedFile.name}</span>
-              <Tag value={Math.round(uploadedFile.size / 1024) + ' KB'} />
+            <div className="flex align-items-center gap-2 p-3 border-1 surface-border border-round mb-4 bg-gray-50">
+              <i className="pi pi-file text-primary" />
+              <span className="font-medium">{uploadedFile.name}</span>
+              <Tag value={Math.round(uploadedFile.size / 1024) + ' KB'} severity="info" />
             </div>
           )}
 
           {error && (
-            <Message severity="error" text={error} className="mb-3" />
+            <Message severity="error" text={error} className="mb-4 w-full" />
           )}
 
           {uploading && (
-            <div className="mb-3">
-              <ProgressBar value={uploadProgress} showValue />
+            <div className="mb-4">
+              <label className="block font-medium mb-2">Uploading...</label>
+              <ProgressBar value={uploadProgress} showValue className="h-2rem" />
             </div>
           )}
 
           {importResults && (
-            <div className="mt-4">
-              <h5>Import Results</h5>
-              <div className="flex gap-3 mb-3">
-                <div className="flex align-items-center gap-2">
-                  <Tag severity="success" value={importResults.imported} />
-                  <span>Students imported successfully</span>
+            <div className="mt-4 p-3 border-1 surface-border border-round">
+              <div className="flex justify-content-between align-items-center mb-3">
+                <h5 className="text-lg font-medium m-0">Import Results</h5>
+                <Button
+                  icon="pi pi-times"
+                  className="p-button-rounded p-button-text p-button-plain"
+                  onClick={() => setImportResults(null)}
+                  aria-label="Close"
+                />
+              </div>
+
+              <div className="flex flex-column md:flex-row gap-3 mb-4">
+                <div className="flex align-items-center gap-2 p-2 border-round bg-green-50">
+                  <Tag severity="success" value={importResults.imported} className="text-base" />
+                  <span className="font-medium">Students imported successfully</span>
                 </div>
-                <div className="flex align-items-center gap-2">
-                  <Tag severity="danger" value={importResults.errors.length} />
-                  <span>Errors</span>
+                <div className="flex align-items-center gap-2 p-2 border-round bg-red-50">
+                  <Tag severity="danger" value={importResults.errors.length} className="text-base" />
+                  <span className="font-medium">Errors</span>
                 </div>
               </div>
 
               {importResults.errors.length > 0 && (
-                <DataTable
-                  value={importResults.errors}
-                  scrollable
-                  scrollHeight="200px"
-                  className="p-datatable-sm"
-                >
-                  <Column field="row" header="Row" style={{ width: '5rem' }} />
-                  <Column field="error" header="Error" />
-                  <Column body={errorSeverityTemplate} header="Severity" style={{ width: '8rem' }} />
-                </DataTable>
+                <div className="card p-0">
+                  <h6 className="font-medium mb-2">Error Details:</h6>
+                  <DataTable
+                    value={importResults.errors}
+                    scrollable
+                    scrollHeight="200px"
+                    className="p-datatable-sm"
+                    rowHover
+                    stripedRows
+                  >
+                    <Column field="row" header="Row" style={{ width: '5rem' }} />
+                    <Column field="error" header="Error" />
+                    <Column body={errorSeverityTemplate} header="Severity" style={{ width: '8rem' }} />
+                  </DataTable>
+                </div>
               )}
+
+              <div className="flex justify-content-end mt-3">
+                <Button
+                  label="Close"
+                  icon="pi pi-times"
+                  className="p-button-outlined p-button-secondary"
+                  onClick={() => setImportResults(null)}
+                />
+              </div>
             </div>
           )}
         </div>

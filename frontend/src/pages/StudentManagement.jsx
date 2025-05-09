@@ -137,15 +137,37 @@ const StudentManagement = () => {
 
   // Handle import complete
   const handleImportComplete = (results) => {
-    toast.current.show({
-      severity: 'success',
-      summary: 'Import Complete',
-      detail: `Successfully imported ${results.imported} students with ${results.errors.length} errors`,
-      life: 3000
-    });
+    // Determine the appropriate toast message based on results
+    if (results.errors.length === 0) {
+      // No errors - show success message
+      toast.current.show({
+        severity: 'success',
+        summary: 'Import Complete',
+        detail: `Successfully imported ${results.imported} students`,
+        life: 3000
+      });
+    } else if (results.imported > 0 && results.errors.length > 0) {
+      // Some imports succeeded but there were also errors - show warning
+      toast.current.show({
+        severity: 'warn',
+        summary: 'Import Partially Complete',
+        detail: `Imported ${results.imported} students with ${results.errors.length} errors. Check the import dialog for details.`,
+        life: 5000
+      });
+    } else if (results.imported === 0 && results.errors.length > 0) {
+      // All imports failed - show error
+      toast.current.show({
+        severity: 'error',
+        summary: 'Import Failed',
+        detail: `Failed to import any students. ${results.errors.length} errors found. Check the import dialog for details.`,
+        life: 5000
+      });
+    }
 
-    // Trigger list refresh
-    setRefreshList(prev => !prev);
+    // Trigger list refresh if any students were imported
+    if (results.imported > 0) {
+      setRefreshList(prev => !prev);
+    }
   };
 
   return (

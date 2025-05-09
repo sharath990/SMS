@@ -25,10 +25,10 @@ router.post('/students', protect, admin, upload.single('file'), async (req, res)
 
     const filePath = req.file.path;
     const fileExt = path.extname(req.file.originalname).toLowerCase();
-    
+
     let results = [];
     let errors = [];
-    
+
     // Parse file based on extension
     if (fileExt === '.csv') {
       // Parse CSV file
@@ -39,13 +39,13 @@ router.post('/students', protect, admin, upload.single('file'), async (req, res)
     } else {
       return res.status(400).json({ message: 'Unsupported file format' });
     }
-    
+
     // Validate and process each record
     const processedResults = await processStudents(results);
-    
+
     // Clean up - delete the uploaded file
     fs.unlinkSync(filePath);
-    
+
     res.json({
       success: true,
       imported: processedResults.imported,
@@ -54,12 +54,12 @@ router.post('/students', protect, admin, upload.single('file'), async (req, res)
     });
   } catch (error) {
     console.error('Error importing students:', error);
-    
+
     // Clean up if file exists
     if (req.file && fs.existsSync(req.file.path)) {
       fs.unlinkSync(req.file.path);
     }
-    
+
     res.status(500).json({ message: 'Server error' });
   }
 });
@@ -68,10 +68,21 @@ router.post('/students', protect, admin, upload.single('file'), async (req, res)
 const parseCSV = (filePath) => {
   return new Promise((resolve, reject) => {
     const results = [];
-    
+
     fs.createReadStream(filePath)
       .pipe(csv())
-      .on('data', (data) => results.push(data))
+      .on('data', (data) => {
+        // Process the data to handle headers with asterisks
+        const processedData = {};
+
+        // Remove asterisks from field names
+        Object.keys(data).forEach(key => {
+          const cleanKey = key.replace(/\*$/, ''); // Remove trailing asterisk if present
+          processedData[cleanKey] = data[key];
+        });
+
+        results.push(processedData);
+      })
       .on('end', () => {
         resolve(results);
       })
@@ -86,32 +97,61 @@ const parseExcel = (filePath) => {
   const workbook = xlsx.readFile(filePath);
   const sheetName = workbook.SheetNames[0];
   const worksheet = workbook.Sheets[sheetName];
-  
-  // Convert to JSON
-  return xlsx.utils.sheet_to_json(worksheet);
+
+  // Get the raw data
+  const rawData = xlsx.utils.sheet_to_json(worksheet);
+
+  // Process the data to handle headers with asterisks
+  return rawData.map(row => {
+    const processedRow = {};
+
+    // Remove asterisks from field names
+    Object.keys(row).forEach(key => {
+      const cleanKey = key.replace(/\*$/, ''); // Remove trailing asterisk if present
+      processedRow[cleanKey] = row[key];
+    });
+
+    return processedRow;
+  });
 };
 
 // Process student records
 const processStudents = async (records) => {
   let imported = 0;
   let errors = [];
-  
+
   for (let i = 0; i < records.length; i++) {
     const record = records[i];
-    
+
     try {
-      // Validate required fields
-      if (!record.rollNumber || !record.firstName || !record.lastName || 
-          !record.stream || !record.class || !record.section || 
-          !record.batch || !record.parentName || !record.parentMobile) {
+      // Check each required field individually for better error messages
+      const requiredFields = [
+        { field: 'rollNumber', name: 'Roll Number' },
+        { field: 'firstName', name: 'First Name' },
+        { field: 'lastName', name: 'Last Name' },
+        { field: 'stream', name: 'Stream' },
+        { field: 'class', name: 'Class' },
+        { field: 'section', name: 'Section' },
+        { field: 'batch', name: 'Batch' },
+        { field: 'parentName', name: 'Parent Name' },
+        { field: 'parentMobile', name: 'Parent Mobile' },
+        { field: 'parentWhatsApp', name: 'Parent WhatsApp' }
+      ];
+
+      // Check for missing required fields
+      const missingFields = requiredFields.filter(field =>
+        !record[field.field] || record[field.field].toString().trim() === ''
+      );
+
+      if (missingFields.length > 0) {
         errors.push({
           row: i + 2, // +2 because of header row and 0-indexing
-          error: 'Missing required fields',
+          error: `Missing required fields: ${missingFields.map(f => f.name).join(', ')}`,
           data: record
         });
         continue;
       }
-      
+
       // Check if student already exists
       const existingStudent = await Student.findOne({ rollNumber: record.rollNumber });
       if (existingStudent) {
@@ -122,7 +162,7 @@ const processStudents = async (records) => {
         });
         continue;
       }
-      
+
       // Create new student
       const student = new Student({
         rollNumber: record.rollNumber,
@@ -138,7 +178,7 @@ const processStudents = async (records) => {
         parentEmail: record.parentEmail || '',
         address: record.address || ''
       });
-      
+
       await student.save();
       imported++;
     } catch (error) {
@@ -149,7 +189,7 @@ const processStudents = async (records) => {
       });
     }
   }
-  
+
   return { imported, errors };
 };
 
@@ -158,9 +198,25 @@ const processStudents = async (records) => {
 // @access  Private
 router.get('/template', protect, (req, res) => {
   const format = req.query.format || 'csv';
-  
-  // Define template headers
+
+  // Define template headers with required field markers
   const headers = [
+    'rollNumber*',
+    'firstName*',
+    'lastName*',
+    'stream*',
+    'class*',
+    'section*',
+    'batch*',
+    'parentName*',
+    'parentMobile*',
+    'parentWhatsApp*',
+    'parentEmail',
+    'address'
+  ];
+
+  // Define the actual field names for data processing
+  const dataFields = [
     'rollNumber',
     'firstName',
     'lastName',
@@ -174,7 +230,7 @@ router.get('/template', protect, (req, res) => {
     'parentEmail',
     'address'
   ];
-  
+
   // Sample data
   const sampleData = [
     {
@@ -190,35 +246,73 @@ router.get('/template', protect, (req, res) => {
       parentWhatsApp: '9876543210',
       parentEmail: 'parent@example.com',
       address: 'Sample Address'
+    },
+    {
+      rollNumber: 102,
+      firstName: 'Jane',
+      lastName: 'Smith',
+      stream: 'Commerce',
+      class: '2nd PUC',
+      section: 'B',
+      batch: 2023,
+      parentName: 'Parent Name',
+      parentMobile: '9876543211',
+      parentWhatsApp: '9876543211',
+      parentEmail: '', // Optional
+      address: '' // Optional
     }
   ];
-  
+
   if (format === 'csv') {
     // Create CSV content
     let csvContent = headers.join(',') + '\\n';
-    
+
     sampleData.forEach(row => {
-      const values = headers.map(header => {
-        const value = row[header] || '';
+      const values = dataFields.map(field => {
+        const value = row[field] || '';
         // Wrap values with commas in quotes
         return typeof value === 'string' && value.includes(',') ? `"${value}"` : value;
       });
       csvContent += values.join(',') + '\\n';
     });
-    
+
+    // Add a note about required fields
+    csvContent += '\\n"Note: Fields marked with * are required"\\n';
+
     res.setHeader('Content-Type', 'text/csv');
     res.setHeader('Content-Disposition', 'attachment; filename=student_import_template.csv');
     res.send(csvContent);
   } else if (format === 'excel') {
     // Create Excel workbook
     const workbook = xlsx.utils.book_new();
-    const worksheet = xlsx.utils.json_to_sheet(sampleData, { header: headers });
-    
+
+    // Create worksheet with the data
+    const worksheet = xlsx.utils.json_to_sheet(sampleData, { header: dataFields });
+
+    // Replace the header row with our headers that include required field markers
+    const headerRange = xlsx.utils.decode_range(worksheet['!ref']);
+    for (let i = 0; i <= headerRange.e.c; i++) {
+      const cellAddress = xlsx.utils.encode_cell({ r: 0, c: i });
+      worksheet[cellAddress].v = headers[i];
+    }
+
+    // Add a note about required fields
+    const lastRow = headerRange.e.r + 2; // +2 for the two sample rows
+    const noteCell = xlsx.utils.encode_cell({ r: lastRow + 1, c: 0 });
+    worksheet[noteCell] = { t: 's', v: 'Note: Fields marked with * are required' };
+
+    // Update the worksheet range to include the note
+    const newRange = xlsx.utils.encode_range({
+      s: { r: 0, c: 0 },
+      e: { r: lastRow + 1, c: headerRange.e.c }
+    });
+    worksheet['!ref'] = newRange;
+
     xlsx.utils.book_append_sheet(workbook, worksheet, 'Students');
-    
+
     // Generate buffer
     const buffer = xlsx.write(workbook, { type: 'buffer', bookType: 'xlsx' });
-    
+
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
     res.setHeader('Content-Disposition', 'attachment; filename=student_import_template.xlsx');
     res.send(buffer);

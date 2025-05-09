@@ -1,0 +1,38 @@
+/* Custom styles for StudentImport component */
+
+/* Style for the file upload button */
+.custom-file-upload .p-button {
+  height: 2.5rem !important;
+  padding: 0.5rem 1.5rem !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  font-weight: 500 !important;
+}
+
+/* Ensure the button has proper hover effects */
+.custom-file-upload .p-button:hover {
+  background-color: var(--primary-600) !important;
+}
+
+/* Style for the file upload container */
+.custom-file-upload {
+  width: 100% !important;
+}
+
+/* Ensure proper spacing in the dialog footer */
+.import-dialog-footer {
+  padding: 1rem !important;
+  display: flex !important;
+  justify-content: flex-end !important;
+  gap: 0.75rem !important;
+}
+
+/* Style for the template download buttons */
+.template-download-btn {
+  height: 2.5rem !important;
+  padding: 0.5rem 1rem !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
