@@ -1,10 +1,8 @@
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useRoutes } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import AdminRoute from './components/AdminRoute';
-import Login from './pages/Login';
-import Dashboard from './pages/Dashboard';
-import AdminDashboard from './pages/AdminDashboard';
+import routes from './routes/routes.jsx';
 
 // PrimeReact imports
 import 'primereact/resources/themes/lara-light-blue/theme.css'; // modern theme
@@ -13,31 +11,18 @@ import 'primeicons/primeicons.css'; // icons
 import 'primeflex/primeflex.css'; // PrimeFlex for layout utilities
 import './App.css';
 
+// AppRoutes component to use the useRoutes hook
+const AppRoutes = () => {
+  const routeElements = useRoutes(routes);
+  return routeElements;
+};
+
 function App() {
   return (
     <AuthProvider>
       <Router>
         <div className="app-container">
-          <Routes>
-            <Route path="/login" element={<Login />} />
-            <Route
-              path="/dashboard"
-              element={
-                <ProtectedRoute>
-                  <Dashboard />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/admin"
-              element={
-                <AdminRoute>
-                  <AdminDashboard />
-                </AdminRoute>
-              }
-            />
-            <Route path="/" element={<Navigate to="/login" />} />
-          </Routes>
+          <AppRoutes />
         </div>
       </Router>
     </AuthProvider>

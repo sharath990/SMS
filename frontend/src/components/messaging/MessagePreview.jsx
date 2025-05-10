@@ -122,22 +122,32 @@ const MessagePreview = ({ messageData, previewData, onSend, onPrevious, sending 
           <div className="field">
             <label className="font-medium block mb-2">Preview (How it will appear to recipients):</label>
 
-            {previewData && previewData.previews.map((preview, index) => (
-              <div key={index} className="mb-3 p-3 border-1 border-round surface-border shadow-1">
-                <div className="flex justify-content-between mb-2">
-                  <span className="font-medium text-primary">{preview.recipient}</span>
-                  <span className="text-500 font-medium">{preview.mobile || 'No mobile number'}</span>
-                </div>
-                <div className="p-4 border-1 border-round surface-border bg-gray-50 whitespace-pre-line">
-                  {preview.content}
-                </div>
-              </div>
-            ))}
+            {previewData && previewData.previews && previewData.previews.length > 0 ? (
+              <>
+                {previewData.previews.map((preview, index) => (
+                  <div key={index} className="mb-3 p-3 border-1 border-round surface-border shadow-1">
+                    <div className="flex justify-content-between mb-2">
+                      <span className="font-medium text-primary">{preview.recipient}</span>
+                      <span className="text-500 font-medium">{preview.mobile || 'No mobile number'}</span>
+                    </div>
+                    <div className="p-4 border-1 border-round surface-border bg-gray-50 whitespace-pre-line">
+                      {preview.content}
+                    </div>
+                  </div>
+                ))}
 
-            {previewData && previewData.totalRecipients > previewData.previews.length && (
+                {previewData.totalRecipients > previewData.previews.length && (
+                  <Message
+                    severity="info"
+                    text={`... and ${previewData.totalRecipients - previewData.previews.length} more recipients`}
+                    className="w-full mt-3"
+                  />
+                )}
+              </>
+            ) : (
               <Message
-                severity="info"
-                text={`... and ${previewData.totalRecipients - previewData.previews.length} more recipients`}
+                severity="warn"
+                text="No preview available. This may happen when selecting individual students. The message will still be sent to all selected recipients."
                 className="w-full mt-3"
               />
             )}

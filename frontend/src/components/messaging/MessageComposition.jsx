@@ -59,11 +59,35 @@ const MessageComposition = ({ messageData, updateMessageData, templates, token, 
       let totalCount = 0;
 
       if (messageData.targetType === 'Individual' && messageData.recipientIds.length > 0) {
-        // For individual selection, we already know the exact count
-        const response = await axios.get('http://localhost:5000/api/students', config);
-        const allStudents = response.data.data;
-        recipients = allStudents.filter(student => messageData.recipientIds.includes(student._id));
-        totalCount = messageData.recipientIds.length;
+        // For individual selection, we need to fetch each student by ID to ensure we get all data
+        try {
+          console.log('Fetching individual students for preview:', messageData.recipientIds);
+
+          // Get the first 3 students for preview
+          const previewIds = messageData.recipientIds.slice(0, 3);
+
+          // Fetch each student individually to ensure we get complete data
+          const studentPromises = previewIds.map(id =>
+            axios.get(`http://localhost:5000/api/students/${id}`, config)
+          );
+
+          const studentResponses = await Promise.all(studentPromises);
+          recipients = studentResponses.map(response => response.data.data);
+
+          console.log('Fetched individual students for preview:', recipients);
+
+          // Set the total count to the total number of selected students
+          totalCount = messageData.recipientIds.length;
+        } catch (error) {
+          console.error('Error fetching individual students:', error);
+
+          // Fallback to the old method if individual fetching fails
+          console.log('Falling back to fetching all students');
+          const response = await axios.get('http://localhost:5000/api/students', config);
+          const allStudents = response.data.data;
+          recipients = allStudents.filter(student => messageData.recipientIds.includes(student._id));
+          totalCount = messageData.recipientIds.length;
+        }
       } else {
         // First, get the total count without limit
         const countParams = new URLSearchParams();
@@ -266,6 +290,16 @@ const MessageComposition = ({ messageData, updateMessageData, templates, token, 
 
   // Generate preview messages
   const generatePreview = (recipientsToUse = previewRecipients) => {
+    // Check if we have any recipients to preview
+    if (!recipientsToUse || recipientsToUse.length === 0) {
+      console.log('No recipients available for preview');
+      return {
+        previews: [],
+        totalRecipients: totalRecipientCount || 0,
+        messageType: messageData.messageType
+      };
+    }
+
     // Generate preview messages for the first few recipients
     const previews = recipientsToUse.slice(0, 3).map(recipient => {
       let previewContent = content;
@@ -274,9 +308,9 @@ const MessageComposition = ({ messageData, updateMessageData, templates, token, 
 
       // Replace placeholders with actual values
       previewContent = previewContent.replace(/\[STUDENT_NAME\]/g, `${recipient.firstName} ${recipient.lastName}`);
-      previewContent = previewContent.replace(/\[ROLL_NUMBER\]/g, recipient.rollNumber);
-      previewContent = previewContent.replace(/\[CLASS\]/g, recipient.class);
-      previewContent = previewContent.replace(/\[SECTION\]/g, recipient.section);
+      previewContent = previewContent.replace(/\[ROLL_NUMBER\]/g, recipient.rollNumber || '');
+      previewContent = previewContent.replace(/\[CLASS\]/g, recipient.class || '');
+      previewContent = previewContent.replace(/\[SECTION\]/g, recipient.section || '');
 
       // Use the actual parent name from the student record
       if (recipient.parentName) {
@@ -327,7 +361,7 @@ const MessageComposition = ({ messageData, updateMessageData, templates, token, 
       }
 
       return {
-        recipient: `${recipient.firstName} ${recipient.lastName} (${recipient.rollNumber})`,
+        recipient: `${recipient.firstName} ${recipient.lastName} (${recipient.rollNumber || 'No Roll Number'})`,
         content: previewContent,
         mobile: messageData.messageType === 'SMS' ? recipient.parentMobile : recipient.parentWhatsApp
       };
