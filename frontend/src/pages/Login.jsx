@@ -31,8 +31,14 @@ const Login = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
+    console.log('Login component mounted or updated');
+    console.log('isAuthenticated:', isAuthenticated);
+    console.log('user:', user);
+    console.log('error:', error);
+
     // If user is already authenticated, redirect based on role
     if (isAuthenticated && user) {
+      console.log('User is authenticated, redirecting...');
       if (user.isAdmin) {
         navigate('/admin');
       } else {
@@ -42,6 +48,7 @@ const Login = () => {
 
     // Set form error if there's an authentication error
     if (error) {
+      console.log('Setting form error:', error);
       setFormError(error);
       clearError();
     }
@@ -49,29 +56,41 @@ const Login = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    console.log('Login form submitted');
 
     // Validate form
     if (!email || !password) {
+      console.log('Validation failed: missing email or password');
       setFormError('Please enter both email and password');
       return;
     }
 
     // Clear previous errors
     setFormError('');
+    console.log('Attempting login with:', { email });
 
-    // Attempt login
-    const result = await login({ email, password });
+    try {
+      // Attempt login
+      const result = await login({ email, password });
+      console.log('Login result:', result);
 
-    if (result.success) {
-      // Show success toast
-      showToast('success', 'Login Successful', 'Welcome back!');
+      if (result.success) {
+        // Show success toast
+        console.log('Login successful, showing toast');
+        showToast('success', 'Login Successful', 'Welcome back!');
 
-      // Redirect based on user role
-      if (result.user && result.user.isAdmin) {
-        navigate('/admin');
+        // Redirect based on user role
+        console.log('Redirecting user based on role:', result.user);
+        if (result.user && result.user.isAdmin) {
+          navigate('/admin');
+        } else {
+          navigate('/dashboard');
+        }
       } else {
-        navigate('/dashboard');
+        console.log('Login failed:', result.error);
       }
+    } catch (error) {
+      console.error('Unexpected error during login:', error);
     }
   };
 

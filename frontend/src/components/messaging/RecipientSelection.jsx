@@ -8,7 +8,7 @@ import { DataTable } from 'primereact/datatable';
 import { Column } from 'primereact/column';
 import { InputText } from 'primereact/inputtext';
 import { classNames } from 'primereact/utils';
-import axios from 'axios';
+import { classService, batchService, studentService } from '../../services';
 
 const RecipientSelection = ({ messageData, updateMessageData, token, onNext, onPrevious }) => {
   const [targetType, setTargetType] = useState(messageData.targetType || 'College');
@@ -67,57 +67,55 @@ const RecipientSelection = ({ messageData, updateMessageData, token, onNext, onP
   // Fetch classes based on selected stream
   const fetchClasses = async (stream) => {
     try {
-      const config = {
-        headers: {
-          'x-auth-token': token
-        }
-      };
+      const filters = { stream, isActive: true };
+      const response = await classService.getClasses(token, filters);
 
-      const response = await axios.get(`http://localhost:5000/api/classes?stream=${stream}&isActive=true`, config);
-
-      // Extract unique class names
-      const uniqueClasses = [...new Set(response.data.data.map(c => c.level))];
-      setClasses(uniqueClasses.map(c => ({ label: c, value: c })));
+      if (response.success) {
+        // Extract unique class names
+        const uniqueClasses = [...new Set(response.data.data.map(c => c.level))];
+        setClasses(uniqueClasses.map(c => ({ label: c, value: c })));
+      } else {
+        console.error('Error fetching classes:', response.error);
+      }
     } catch (error) {
-      console.error('Error fetching classes:', error);
+      console.error('Unexpected error fetching classes:', error);
     }
   };
 
   // Fetch sections based on selected stream and class
   const fetchSections = async (stream, className) => {
     try {
-      const config = {
-        headers: {
-          'x-auth-token': token
-        }
-      };
+      const filters = { stream, level: className, isActive: true };
+      const response = await classService.getClasses(token, filters);
 
-      const response = await axios.get(`http://localhost:5000/api/classes?stream=${stream}&level=${className}&isActive=true`, config);
-
-      // Extract unique section names
-      const uniqueSections = [...new Set(response.data.data.map(c => c.section))];
-      setSections(uniqueSections.map(s => ({ label: s, value: s })));
+      if (response.success) {
+        // Extract unique section names
+        const uniqueSections = [...new Set(response.data.data.map(c => c.section))];
+        setSections(uniqueSections.map(s => ({ label: s, value: s })));
+      } else {
+        console.error('Error fetching sections:', response.error);
+      }
     } catch (error) {
-      console.error('Error fetching sections:', error);
+      console.error('Unexpected error fetching sections:', error);
     }
   };
 
   // Fetch batches
   const fetchBatches = async () => {
     try {
-      const config = {
-        headers: {
-          'x-auth-token': token
-        }
-      };
+      const filters = { isGraduated: false };
+      const response = await batchService.getBatches(token, filters);
 
-      const response = await axios.get('http://localhost:5000/api/batches?isGraduated=false', config);
-      setBatches(response.data.data.map(batch => ({
-        label: `${batch.name} (${batch.year})`,
-        value: batch.name
-      })));
+      if (response.success) {
+        setBatches(response.data.data.map(batch => ({
+          label: `${batch.name} (${batch.year})`,
+          value: batch.name
+        })));
+      } else {
+        console.error('Error fetching batches:', response.error);
+      }
     } catch (error) {
-      console.error('Error fetching batches:', error);
+      console.error('Unexpected error fetching batches:', error);
     }
   };
 
@@ -126,27 +124,26 @@ const RecipientSelection = ({ messageData, updateMessageData, token, onNext, onP
     try {
       setLoading(true);
 
-      const config = {
-        headers: {
-          'x-auth-token': token
-        }
-      };
+      // Prepare filter object
+      const filterParams = { isActive: true };
 
-      // Build query parameters
-      const params = new URLSearchParams();
-      params.append('isActive', 'true');
+      if (filters.search) filterParams.search = filters.search;
+      if (filters.stream) filterParams.stream = filters.stream;
+      if (filters.class) filterParams.class = filters.class;
+      if (filters.section) filterParams.section = filters.section;
+      if (filters.batch) filterParams.batch = filters.batch;
 
-      if (filters.search) params.append('search', filters.search);
-      if (filters.stream) params.append('stream', filters.stream);
-      if (filters.class) params.append('class', filters.class);
-      if (filters.section) params.append('section', filters.section);
-      if (filters.batch) params.append('batch', filters.batch);
+      const response = await studentService.getStudents(token, filterParams);
 
-      const response = await axios.get(`http://localhost:5000/api/students?${params.toString()}`, config);
-      setStudents(response.data.data);
+      if (response.success) {
+        setStudents(response.data.data);
+      } else {
+        console.error('Error fetching students:', response.error);
+      }
+
       setLoading(false);
     } catch (error) {
-      console.error('Error fetching students:', error);
+      console.error('Unexpected error fetching students:', error);
       setLoading(false);
     }
   };
@@ -154,21 +151,19 @@ const RecipientSelection = ({ messageData, updateMessageData, token, onNext, onP
   // Fetch selected students by IDs
   const fetchSelectedStudents = async (ids) => {
     try {
-      const config = {
-        headers: {
-          'x-auth-token': token
-        }
-      };
+      // Fetch all students and filter them by ID
+      // In a production environment, we would have an API endpoint to fetch students by IDs
+      const response = await studentService.getStudents(token);
 
-      // In a real implementation, you would have an API endpoint for this
-      // For now, we'll fetch all students and filter them
-      const response = await axios.get('http://localhost:5000/api/students', config);
-      const allStudents = response.data.data;
-
-      const selected = allStudents.filter(student => ids.includes(student._id));
-      setSelectedStudents(selected);
+      if (response.success) {
+        const allStudents = response.data.data;
+        const selected = allStudents.filter(student => ids.includes(student._id));
+        setSelectedStudents(selected);
+      } else {
+        console.error('Error fetching selected students:', response.error);
+      }
     } catch (error) {
-      console.error('Error fetching selected students:', error);
+      console.error('Unexpected error fetching selected students:', error);
     }
   };
 

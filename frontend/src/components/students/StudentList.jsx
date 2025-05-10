@@ -6,7 +6,7 @@ import { InputText } from 'primereact/inputtext';
 import { Dropdown } from 'primereact/dropdown';
 import { Toast } from 'primereact/toast';
 import { ConfirmDialog, confirmDialog } from 'primereact/confirmdialog';
-import axios from 'axios';
+import { studentService } from '../../services';
 
 const StudentList = ({ token, onEdit, onView, headerTemplate, refreshList }) => {
   const [students, setStudents] = useState([]);
@@ -59,39 +59,45 @@ const StudentList = ({ token, onEdit, onView, headerTemplate, refreshList }) => 
     try {
       setLoading(true);
 
-      // Build query parameters
-      const params = new URLSearchParams();
-      params.append('page', lazyParams.page);
-      params.append('limit', lazyParams.rows);
-      params.append('sortField', lazyParams.sortField);
-      params.append('sortOrder', lazyParams.sortOrder === 1 ? 'asc' : 'desc');
-
-      if (filters.stream) params.append('stream', filters.stream);
-      if (filters.class) params.append('class', filters.class);
-      if (filters.section) params.append('section', filters.section);
-      if (filters.batch) params.append('batch', filters.batch);
-      if (filters.isActive !== null) params.append('isActive', filters.isActive);
-      if (filters.search) params.append('search', filters.search);
-
-      const config = {
-        headers: {
-          'x-auth-token': token
-        }
+      // Prepare filter object for the service
+      const filterParams = {
+        ...filters
       };
 
-      const response = await axios.get(`http://localhost:5000/api/students?${params.toString()}`, config);
+      // Convert sortOrder to match API expectations
+      const sortOrderValue = lazyParams.sortOrder === 1 ? 1 : -1;
 
-      setStudents(response.data.data);
-      setTotalRecords(response.data.total);
+      const response = await studentService.getStudents(
+        token,
+        filterParams,
+        lazyParams.page,
+        lazyParams.rows,
+        lazyParams.sortField,
+        sortOrderValue
+      );
+
+      if (response.success) {
+        setStudents(response.data.data);
+        setTotalRecords(response.data.total);
+      } else {
+        console.error('Error loading students:', response.error);
+        toast.current.show({
+          severity: 'error',
+          summary: 'Error',
+          detail: response.error.message || 'Failed to load students',
+          life: 3000
+        });
+      }
+
       setLoading(false);
     } catch (error) {
-      console.error('Error loading students:', error);
+      console.error('Unexpected error loading students:', error);
       setLoading(false);
 
       toast.current.show({
         severity: 'error',
         summary: 'Error',
-        detail: 'Failed to load students',
+        detail: 'An unexpected error occurred while loading students',
         life: 3000
       });
     }
@@ -146,31 +152,37 @@ const StudentList = ({ token, onEdit, onView, headerTemplate, refreshList }) => 
     try {
       setLoading(true);
 
-      const config = {
-        headers: {
-          'x-auth-token': token
-        }
-      };
+      const response = await studentService.deleteStudent(token, id);
 
-      await axios.delete(`http://localhost:5000/api/students/${id}`, config);
+      if (response.success) {
+        toast.current.show({
+          severity: 'success',
+          summary: 'Success',
+          detail: 'Student deleted successfully',
+          life: 3000
+        });
 
-      toast.current.show({
-        severity: 'success',
-        summary: 'Success',
-        detail: 'Student deleted successfully',
-        life: 3000
-      });
+        // Reload students
+        loadStudents();
+      } else {
+        console.error('Error deleting student:', response.error);
+        setLoading(false);
 
-      // Reload students
-      loadStudents();
+        toast.current.show({
+          severity: 'error',
+          summary: 'Error',
+          detail: response.error.message || 'Failed to delete student',
+          life: 3000
+        });
+      }
     } catch (error) {
-      console.error('Error deleting student:', error);
+      console.error('Unexpected error deleting student:', error);
       setLoading(false);
 
       toast.current.show({
         severity: 'error',
         summary: 'Error',
-        detail: error.response?.data?.message || 'Failed to delete student',
+        detail: 'An unexpected error occurred while deleting student',
         life: 3000
       });
     }

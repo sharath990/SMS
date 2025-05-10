@@ -2,8 +2,8 @@ import { useState, useRef, useContext } from 'react';
 import { Button } from 'primereact/button';
 import { Toast } from 'primereact/toast';
 import { BreadCrumb } from 'primereact/breadcrumb';
-import axios from 'axios';
 import AuthContext from '../context/AuthContext';
+import { batchService } from '../services';
 import BatchList from '../components/batches/BatchList';
 import BatchForm from '../components/batches/BatchForm';
 import '../styles/BatchManagement.css';
@@ -42,35 +42,36 @@ const BatchManagement = () => {
   // Handle save batch
   const handleSaveBatch = async (formData, mode) => {
     try {
-      const config = {
-        headers: {
-          'Content-Type': 'application/json',
-          'x-auth-token': token
-        }
-      };
-
       let response;
 
       if (mode === 'add') {
         // Create new batch
-        response = await axios.post('http://localhost:5000/api/batches', formData, config);
+        response = await batchService.createBatch(token, formData);
 
-        toast.current.show({
-          severity: 'success',
-          summary: 'Success',
-          detail: 'Batch added successfully',
-          life: 3000
-        });
+        if (response.success) {
+          toast.current.show({
+            severity: 'success',
+            summary: 'Success',
+            detail: 'Batch added successfully',
+            life: 3000
+          });
+        } else {
+          throw new Error(response.error.message || 'Failed to create batch');
+        }
       } else {
         // Update existing batch
-        response = await axios.put(`http://localhost:5000/api/batches/${selectedBatch._id}`, formData, config);
+        response = await batchService.updateBatch(token, selectedBatch._id, formData);
 
-        toast.current.show({
-          severity: 'success',
-          summary: 'Success',
-          detail: 'Batch updated successfully',
-          life: 3000
-        });
+        if (response.success) {
+          toast.current.show({
+            severity: 'success',
+            summary: 'Success',
+            detail: 'Batch updated successfully',
+            life: 3000
+          });
+        } else {
+          throw new Error(response.error.message || 'Failed to update batch');
+        }
       }
 
       // Trigger list refresh
@@ -83,7 +84,7 @@ const BatchManagement = () => {
       toast.current.show({
         severity: 'error',
         summary: 'Error',
-        detail: error.response?.data?.message || 'Failed to save batch',
+        detail: error.message || 'Failed to save batch',
         life: 3000
       });
 

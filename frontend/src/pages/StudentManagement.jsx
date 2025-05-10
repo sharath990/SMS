@@ -2,8 +2,8 @@ import { useState, useRef, useContext } from 'react';
 import { Button } from 'primereact/button';
 import { Toast } from 'primereact/toast';
 import { BreadCrumb } from 'primereact/breadcrumb';
-import axios from 'axios';
 import AuthContext from '../context/AuthContext';
+import { studentService } from '../services';
 import StudentList from '../components/students/StudentList';
 import StudentForm from '../components/students/StudentForm';
 import StudentView from '../components/students/StudentView';
@@ -60,56 +60,53 @@ const StudentManagement = () => {
     console.log('Form data received:', formData);
 
     try {
-      const config = {
-        headers: {
-          'Content-Type': 'application/json',
-          'x-auth-token': token
-        }
+      // Convert string numeric values to numbers
+      const processedData = {
+        ...formData,
+        rollNumber: formData.rollNumber ? parseInt(formData.rollNumber, 10) : undefined,
+        batch: formData.batch ? parseInt(formData.batch, 10) : undefined
       };
 
-      console.log('API request config:', config);
       let response;
 
       if (mode === 'add') {
         // Create new student
-        // Convert string numeric values to numbers
-        const processedData = {
-          ...formData,
-          rollNumber: formData.rollNumber ? parseInt(formData.rollNumber, 10) : undefined,
-          batch: formData.batch ? parseInt(formData.batch, 10) : undefined
-        };
-
-        console.log('Attempting to create new student with POST request');
+        console.log('Attempting to create new student');
         console.log('Processed data:', processedData);
-        response = await axios.post('http://localhost:5000/api/students', processedData, config);
-        console.log('POST request successful:', response);
 
-        toast.current.show({
-          severity: 'success',
-          summary: 'Success',
-          detail: 'Student added successfully',
-          life: 3000
-        });
+        response = await studentService.createStudent(token, processedData);
+
+        if (response.success) {
+          console.log('Student creation successful:', response.data);
+
+          toast.current.show({
+            severity: 'success',
+            summary: 'Success',
+            detail: 'Student added successfully',
+            life: 3000
+          });
+        } else {
+          throw new Error(response.error.message || 'Failed to create student');
+        }
       } else {
         // Update existing student
-        // Convert string numeric values to numbers
-        const processedData = {
-          ...formData,
-          rollNumber: formData.rollNumber ? parseInt(formData.rollNumber, 10) : undefined,
-          batch: formData.batch ? parseInt(formData.batch, 10) : undefined
-        };
-
-        console.log('Attempting to update student with PUT request');
+        console.log('Attempting to update student');
         console.log('Processed data:', processedData);
-        response = await axios.put(`http://localhost:5000/api/students/${selectedStudent._id}`, processedData, config);
-        console.log('PUT request successful:', response);
 
-        toast.current.show({
-          severity: 'success',
-          summary: 'Success',
-          detail: 'Student updated successfully',
-          life: 3000
-        });
+        response = await studentService.updateStudent(token, selectedStudent._id, processedData);
+
+        if (response.success) {
+          console.log('Student update successful:', response.data);
+
+          toast.current.show({
+            severity: 'success',
+            summary: 'Success',
+            detail: 'Student updated successfully',
+            life: 3000
+          });
+        } else {
+          throw new Error(response.error.message || 'Failed to update student');
+        }
       }
 
       // Trigger list refresh
@@ -118,16 +115,11 @@ const StudentManagement = () => {
       return response.data;
     } catch (error) {
       console.error('Error saving student:', error);
-      console.error('Error details:', {
-        message: error.message,
-        response: error.response,
-        request: error.request
-      });
 
       toast.current.show({
         severity: 'error',
         summary: 'Error',
-        detail: error.response?.data?.message || 'Failed to save student',
+        detail: error.message || 'Failed to save student',
         life: 3000
       });
 

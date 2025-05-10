@@ -3,7 +3,7 @@ import { Card } from 'primereact/card';
 import { Dropdown } from 'primereact/dropdown';
 import { Message } from 'primereact/message';
 import { classNames } from 'primereact/utils';
-import axios from 'axios';
+import { subjectService, classTimingService } from '../../services';
 
 const SubjectSelection = ({ messageData, updateMessageData, token }) => {
   const [subjects, setSubjects] = useState([]);
@@ -22,7 +22,7 @@ const SubjectSelection = ({ messageData, updateMessageData, token }) => {
   // Fetch class timings when subject changes
   useEffect(() => {
     if (selectedSubject) {
-      fetchClassTimings(selectedSubject);
+      fetchClassTimings();
     } else {
       setClassTimings([]);
       setSelectedClassTiming(null);
@@ -35,59 +35,59 @@ const SubjectSelection = ({ messageData, updateMessageData, token }) => {
     try {
       setLoading(true);
 
-      const config = {
-        headers: {
-          'x-auth-token': token
-        }
-      };
+      const filters = { isActive: true };
+      const response = await subjectService.getSubjects(token, filters);
 
-      const response = await axios.get('http://localhost:5000/api/subjects?isActive=true', config);
+      if (response.success) {
+        // Format subjects for dropdown
+        const formattedSubjects = response.data.data.map(subject => ({
+          label: `${subject.name} (${subject.code})`,
+          value: subject._id,
+          stream: subject.stream
+        }));
 
-      // Format subjects for dropdown
-      const formattedSubjects = response.data.data.map(subject => ({
-        label: `${subject.name} (${subject.code})`,
-        value: subject._id,
-        stream: subject.stream
-      }));
+        setSubjects(formattedSubjects);
+      } else {
+        console.error('Error fetching subjects:', response.error);
+      }
 
-      setSubjects(formattedSubjects);
       setLoading(false);
     } catch (error) {
-      console.error('Error fetching subjects:', error);
+      console.error('Unexpected error fetching subjects:', error);
       setLoading(false);
     }
   };
 
-  // Fetch class timings for a subject
-  const fetchClassTimings = async (subjectId) => {
+  // Fetch class timings
+  const fetchClassTimings = async () => {
     try {
       setLoading(true);
 
-      const config = {
-        headers: {
-          'x-auth-token': token
-        }
-      };
-
       // Note: The API no longer filters by subject since we've removed that field
       // Instead, we'll fetch all active class timings
-      const response = await axios.get(`http://localhost:5000/api/class-timings?isActive=true`, config);
+      const filters = { isActive: true };
+      const response = await classTimingService.getClassTimings(token, filters);
 
-      // Format class timings for dropdown
-      const formattedClassTimings = response.data.data.map(timing => ({
-        label: `${timing.name}: Period ${timing.period} (${timing.startTime} - ${timing.endTime})`,
-        value: timing._id,
-        name: timing.name,
-        period: timing.period,
-        startTime: timing.startTime,
-        endTime: timing.endTime,
-        description: timing.description
-      }));
+      if (response.success) {
+        // Format class timings for dropdown
+        const formattedClassTimings = response.data.data.map(timing => ({
+          label: `${timing.name}: Period ${timing.period} (${timing.startTime} - ${timing.endTime})`,
+          value: timing._id,
+          name: timing.name,
+          period: timing.period,
+          startTime: timing.startTime,
+          endTime: timing.endTime,
+          description: timing.description
+        }));
 
-      setClassTimings(formattedClassTimings);
+        setClassTimings(formattedClassTimings);
+      } else {
+        console.error('Error fetching class timings:', response.error);
+      }
+
       setLoading(false);
     } catch (error) {
-      console.error('Error fetching class timings:', error);
+      console.error('Unexpected error fetching class timings:', error);
       setLoading(false);
     }
   };

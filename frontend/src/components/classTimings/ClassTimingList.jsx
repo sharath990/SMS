@@ -6,7 +6,7 @@ import { InputText } from 'primereact/inputtext';
 import { Dropdown } from 'primereact/dropdown';
 import { Toast } from 'primereact/toast';
 import { ConfirmDialog, confirmDialog } from 'primereact/confirmdialog';
-import axios from 'axios';
+import { classTimingService } from '../../services';
 
 const ClassTimingList = ({ token, onEdit, onView, refreshList }) => {
   const [classTimings, setClassTimings] = useState([]);
@@ -38,35 +38,43 @@ const ClassTimingList = ({ token, onEdit, onView, refreshList }) => {
     try {
       setLoading(true);
 
-      // Build query parameters
-      const params = new URLSearchParams();
-      params.append('page', lazyParams.page);
-      params.append('limit', lazyParams.rows);
-      params.append('sortField', lazyParams.sortField);
-      params.append('sortOrder', lazyParams.sortOrder === 1 ? 'asc' : 'desc');
+      // Prepare filter object for the service
+      const filterParams = { ...filters };
 
-      if (filters.isActive !== null) params.append('isActive', filters.isActive.toString());
-      if (filters.search) params.append('search', filters.search);
+      // Convert sortOrder to match API expectations
+      const sortOrderValue = lazyParams.sortOrder === 1 ? 1 : -1;
 
-      const config = {
-        headers: {
-          'x-auth-token': token
-        }
-      };
+      const response = await classTimingService.getClassTimings(
+        token,
+        filterParams,
+        lazyParams.page,
+        lazyParams.rows,
+        lazyParams.sortField,
+        sortOrderValue
+      );
 
-      const response = await axios.get(`http://localhost:5000/api/class-timings?${params.toString()}`, config);
+      if (response.success) {
+        setClassTimings(response.data.data);
+        setTotalRecords(response.data.total);
+      } else {
+        console.error('Error loading class timings:', response.error);
+        toast.current.show({
+          severity: 'error',
+          summary: 'Error',
+          detail: response.error.message || 'Failed to load class timings',
+          life: 3000
+        });
+      }
 
-      setClassTimings(response.data.data);
-      setTotalRecords(response.data.total);
       setLoading(false);
     } catch (error) {
-      console.error('Error loading class timings:', error);
+      console.error('Unexpected error loading class timings:', error);
       setLoading(false);
 
       toast.current.show({
         severity: 'error',
         summary: 'Error',
-        detail: 'Failed to load class timings',
+        detail: 'An unexpected error occurred while loading class timings',
         life: 3000
       });
     }
@@ -121,31 +129,37 @@ const ClassTimingList = ({ token, onEdit, onView, refreshList }) => {
     try {
       setLoading(true);
 
-      const config = {
-        headers: {
-          'x-auth-token': token
-        }
-      };
+      const response = await classTimingService.deleteClassTiming(token, id);
 
-      await axios.delete(`http://localhost:5000/api/class-timings/${id}`, config);
+      if (response.success) {
+        toast.current.show({
+          severity: 'success',
+          summary: 'Success',
+          detail: 'Class timing deleted successfully',
+          life: 3000
+        });
 
-      toast.current.show({
-        severity: 'success',
-        summary: 'Success',
-        detail: 'Class timing deleted successfully',
-        life: 3000
-      });
+        // Reload class timings
+        loadClassTimings();
+      } else {
+        console.error('Error deleting class timing:', response.error);
+        setLoading(false);
 
-      // Reload class timings
-      loadClassTimings();
+        toast.current.show({
+          severity: 'error',
+          summary: 'Error',
+          detail: response.error.message || 'Failed to delete class timing',
+          life: 3000
+        });
+      }
     } catch (error) {
-      console.error('Error deleting class timing:', error);
+      console.error('Unexpected error deleting class timing:', error);
       setLoading(false);
 
       toast.current.show({
         severity: 'error',
         summary: 'Error',
-        detail: error.response?.data?.message || 'Failed to delete class timing',
+        detail: 'An unexpected error occurred while deleting class timing',
         life: 3000
       });
     }
@@ -154,35 +168,39 @@ const ClassTimingList = ({ token, onEdit, onView, refreshList }) => {
   // Toggle class timing active status
   const toggleActiveStatus = async (classTiming) => {
     try {
-      const config = {
-        headers: {
-          'Content-Type': 'application/json',
-          'x-auth-token': token
-        }
-      };
-
       const updatedClassTiming = {
         ...classTiming,
         isActive: !classTiming.isActive
       };
 
-      await axios.put(`http://localhost:5000/api/class-timings/${classTiming._id}`, updatedClassTiming, config);
+      const response = await classTimingService.updateClassTiming(token, classTiming._id, updatedClassTiming);
 
-      toast.current.show({
-        severity: 'success',
-        summary: 'Success',
-        detail: `Class timing ${updatedClassTiming.isActive ? 'activated' : 'deactivated'} successfully`,
-        life: 3000
-      });
+      if (response.success) {
+        toast.current.show({
+          severity: 'success',
+          summary: 'Success',
+          detail: `Class timing ${updatedClassTiming.isActive ? 'activated' : 'deactivated'} successfully`,
+          life: 3000
+        });
 
-      loadClassTimings();
+        loadClassTimings();
+      } else {
+        console.error('Error toggling class timing status:', response.error);
+
+        toast.current.show({
+          severity: 'error',
+          summary: 'Error',
+          detail: response.error.message || 'Failed to update class timing status',
+          life: 3000
+        });
+      }
     } catch (error) {
-      console.error('Error toggling class timing status:', error);
+      console.error('Unexpected error toggling class timing status:', error);
 
       toast.current.show({
         severity: 'error',
         summary: 'Error',
-        detail: error.response?.data?.message || 'Failed to update class timing status',
+        detail: 'An unexpected error occurred while updating class timing status',
         life: 3000
       });
     }

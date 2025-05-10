@@ -6,7 +6,7 @@ import { InputText } from 'primereact/inputtext';
 import { Dropdown } from 'primereact/dropdown';
 import { Toast } from 'primereact/toast';
 import { ConfirmDialog, confirmDialog } from 'primereact/confirmdialog';
-import axios from 'axios';
+import { subjectService } from '../../services';
 
 const SubjectList = ({ token, onEdit, refreshList }) => {
   const [subjects, setSubjects] = useState([]);
@@ -46,36 +46,43 @@ const SubjectList = ({ token, onEdit, refreshList }) => {
     try {
       setLoading(true);
 
-      // Build query parameters
-      const params = new URLSearchParams();
-      params.append('page', lazyParams.page);
-      params.append('limit', lazyParams.rows);
-      params.append('sortField', lazyParams.sortField);
-      params.append('sortOrder', lazyParams.sortOrder === 1 ? 'asc' : 'desc');
+      // Prepare filter object for the service
+      const filterParams = { ...filters };
 
-      if (filters.search) params.append('search', filters.search);
-      if (filters.stream) params.append('stream', filters.stream);
-      if (filters.isActive !== null) params.append('isActive', filters.isActive.toString());
+      // Convert sortOrder to match API expectations
+      const sortOrderValue = lazyParams.sortOrder === 1 ? 1 : -1;
 
-      const config = {
-        headers: {
-          'x-auth-token': token
-        }
-      };
+      const response = await subjectService.getSubjects(
+        token,
+        filterParams,
+        lazyParams.page,
+        lazyParams.rows,
+        lazyParams.sortField,
+        sortOrderValue
+      );
 
-      const response = await axios.get(`http://localhost:5000/api/subjects?${params.toString()}`, config);
+      if (response.success) {
+        setSubjects(response.data.data);
+        setTotalRecords(response.data.total);
+      } else {
+        console.error('Error loading subjects:', response.error);
+        toast.current.show({
+          severity: 'error',
+          summary: 'Error',
+          detail: response.error.message || 'Failed to load subjects',
+          life: 3000
+        });
+      }
 
-      setSubjects(response.data.data);
-      setTotalRecords(response.data.total);
       setLoading(false);
     } catch (error) {
-      console.error('Error loading subjects:', error);
+      console.error('Unexpected error loading subjects:', error);
       setLoading(false);
 
       toast.current.show({
         severity: 'error',
         summary: 'Error',
-        detail: 'Failed to load subjects',
+        detail: 'An unexpected error occurred while loading subjects',
         life: 3000
       });
     }
@@ -130,31 +137,37 @@ const SubjectList = ({ token, onEdit, refreshList }) => {
     try {
       setLoading(true);
 
-      const config = {
-        headers: {
-          'x-auth-token': token
-        }
-      };
+      const response = await subjectService.deleteSubject(token, id);
 
-      await axios.delete(`http://localhost:5000/api/subjects/${id}`, config);
+      if (response.success) {
+        toast.current.show({
+          severity: 'success',
+          summary: 'Success',
+          detail: 'Subject deleted successfully',
+          life: 3000
+        });
 
-      toast.current.show({
-        severity: 'success',
-        summary: 'Success',
-        detail: 'Subject deleted successfully',
-        life: 3000
-      });
+        // Reload subjects
+        loadSubjects();
+      } else {
+        console.error('Error deleting subject:', response.error);
+        setLoading(false);
 
-      // Reload subjects
-      loadSubjects();
+        toast.current.show({
+          severity: 'error',
+          summary: 'Error',
+          detail: response.error.message || 'Failed to delete subject',
+          life: 3000
+        });
+      }
     } catch (error) {
-      console.error('Error deleting subject:', error);
+      console.error('Unexpected error deleting subject:', error);
       setLoading(false);
 
       toast.current.show({
         severity: 'error',
         summary: 'Error',
-        detail: error.response?.data?.message || 'Failed to delete subject',
+        detail: 'An unexpected error occurred while deleting subject',
         life: 3000
       });
     }
@@ -163,35 +176,39 @@ const SubjectList = ({ token, onEdit, refreshList }) => {
   // Toggle subject active status
   const toggleActiveStatus = async (subject) => {
     try {
-      const config = {
-        headers: {
-          'Content-Type': 'application/json',
-          'x-auth-token': token
-        }
-      };
-
       const updatedSubject = {
         ...subject,
         isActive: !subject.isActive
       };
 
-      await axios.put(`http://localhost:5000/api/subjects/${subject._id}`, updatedSubject, config);
+      const response = await subjectService.updateSubject(token, subject._id, updatedSubject);
 
-      toast.current.show({
-        severity: 'success',
-        summary: 'Success',
-        detail: `Subject ${updatedSubject.isActive ? 'activated' : 'deactivated'} successfully`,
-        life: 3000
-      });
+      if (response.success) {
+        toast.current.show({
+          severity: 'success',
+          summary: 'Success',
+          detail: `Subject ${updatedSubject.isActive ? 'activated' : 'deactivated'} successfully`,
+          life: 3000
+        });
 
-      loadSubjects();
+        loadSubjects();
+      } else {
+        console.error('Error toggling subject status:', response.error);
+
+        toast.current.show({
+          severity: 'error',
+          summary: 'Error',
+          detail: response.error.message || 'Failed to update subject status',
+          life: 3000
+        });
+      }
     } catch (error) {
-      console.error('Error toggling subject status:', error);
+      console.error('Unexpected error toggling subject status:', error);
 
       toast.current.show({
         severity: 'error',
         summary: 'Error',
-        detail: error.response?.data?.message || 'Failed to update subject status',
+        detail: 'An unexpected error occurred while updating subject status',
         life: 3000
       });
     }

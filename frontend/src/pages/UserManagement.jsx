@@ -9,12 +9,12 @@ import { DataTable } from 'primereact/datatable';
 import { Column } from 'primereact/column';
 import { BreadCrumb } from 'primereact/breadcrumb';
 import { ConfirmDialog, confirmDialog } from 'primereact/confirmdialog';
-import axios from 'axios';
 import AuthContext from '../context/AuthContext';
+import { authService } from '../services';
 
 /**
  * UserManagement component
- * 
+ *
  * This component handles the user management functionality:
  * - List all users
  * - Create new users
@@ -55,26 +55,21 @@ const UserManagement = () => {
   const fetchUsers = useCallback(async () => {
     try {
       setLoading(true);
-      const config = {
-        headers: {
-          'x-auth-token': token
-        }
-      };
 
-      const res = await axios.get('http://localhost:5000/api/auth/users', config);
-      setUsers(res.data.users || []);
+      const response = await authService.getAllUsers(token);
+
+      if (response.success) {
+        setUsers(response.data.users || []);
+      } else {
+        console.error('Error fetching users:', response.error);
+        showToast('error', 'Error', response.error.message || 'Failed to fetch users');
+      }
+
       setLoading(false);
     } catch (error) {
-      console.error('Error fetching users:', error);
+      console.error('Unexpected error fetching users:', error);
       setLoading(false);
-      if (toast.current) {
-        toast.current.show({
-          severity: 'error',
-          summary: 'Error',
-          detail: 'Failed to fetch users',
-          life: 3000
-        });
-      }
+      showToast('error', 'Error', 'An unexpected error occurred while fetching users');
     }
   }, [token]);
 
@@ -142,65 +137,47 @@ const UserManagement = () => {
 
       setLoading(true);
 
-      const config = {
-        headers: {
-          'Content-Type': 'application/json',
-          'x-auth-token': token
-        }
-      };
-
-      const response = await axios.post(
-        'http://localhost:5000/api/auth/users',
-        newUser,
-        config
-      );
-
-      setLoading(false);
-      setShowCreateUserDialog(false);
-
-      // Store the username before resetting the form
+      // Store the username before making the API call
       const createdUsername = newUser.username;
 
-      // Reset form
-      setNewUser({
-        username: '',
-        firstName: '',
-        lastName: '',
-        email: '',
-        mobileNumber: '',
-        password: '',
-        isAdmin: true
-      });
-      setFormError('');
+      const response = await authService.createUser(token, newUser);
 
-      // Show success message
-      showToast(
-        'success',
-        'User Created',
-        `User ${createdUsername} has been created successfully`
-      );
+      if (response.success) {
+        setShowCreateUserDialog(false);
 
-      // Refresh users list
-      fetchUsers();
-    } catch (error) {
-      console.error('Error creating user:', error);
-      setLoading(false);
+        // Reset form
+        setNewUser({
+          username: '',
+          firstName: '',
+          lastName: '',
+          email: '',
+          mobileNumber: '',
+          password: '',
+          isAdmin: true
+        });
+        setFormError('');
 
-      // Get detailed error message
-      let errorMsg = 'Error creating user';
+        // Show success message
+        showToast(
+          'success',
+          'User Created',
+          `User ${createdUsername} has been created successfully`
+        );
 
-      if (error.response) {
-        errorMsg = error.response.data?.message || 'Server returned an error';
-      } else if (error.request) {
-        errorMsg = 'No response from server. Please check your connection.';
+        // Refresh users list
+        fetchUsers();
       } else {
-        errorMsg = error.message;
+        // Handle error
+        setFormError(response.error.message || 'Error creating user');
+        showToast('error', 'Creation Failed', response.error.message || 'Error creating user');
       }
 
-      setFormError(errorMsg);
-
-      // Show error toast
-      showToast('error', 'Creation Failed', errorMsg);
+      setLoading(false);
+    } catch (error) {
+      console.error('Unexpected error creating user:', error);
+      setLoading(false);
+      setFormError('An unexpected error occurred');
+      showToast('error', 'Creation Failed', 'An unexpected error occurred');
     }
   };
 
@@ -228,13 +205,6 @@ const UserManagement = () => {
 
       setLoading(true);
 
-      const config = {
-        headers: {
-          'Content-Type': 'application/json',
-          'x-auth-token': token
-        }
-      };
-
       // Create a copy of editUser to send to the server
       const userDataToUpdate = { ...editUser };
 
@@ -243,56 +213,45 @@ const UserManagement = () => {
         delete userDataToUpdate.password;
       }
 
-      const response = await axios.put(
-        `http://localhost:5000/api/auth/users/${editUser.id}`,
-        userDataToUpdate,
-        config
-      );
+      const response = await authService.updateUser(token, editUser.id, userDataToUpdate);
 
-      setLoading(false);
-      setShowEditUserDialog(false);
+      if (response.success) {
+        setShowEditUserDialog(false);
 
-      // Reset form
-      setEditUser({
-        id: '',
-        username: '',
-        firstName: '',
-        lastName: '',
-        email: '',
-        mobileNumber: '',
-        password: '',
-        isAdmin: true
-      });
-      setFormError('');
+        // Reset form
+        setEditUser({
+          id: '',
+          username: '',
+          firstName: '',
+          lastName: '',
+          email: '',
+          mobileNumber: '',
+          password: '',
+          isAdmin: true
+        });
+        setFormError('');
 
-      // Show success message
-      showToast(
-        'success',
-        'User Updated',
-        `User ${response.data.user.username} has been updated successfully`
-      );
+        // Show success message
+        showToast(
+          'success',
+          'User Updated',
+          `User ${response.data.user.username} has been updated successfully`
+        );
 
-      // Refresh users list
-      fetchUsers();
-    } catch (error) {
-      console.error('Error updating user:', error);
-      setLoading(false);
-
-      // Get detailed error message
-      let errorMsg = 'Error updating user';
-
-      if (error.response) {
-        errorMsg = error.response.data?.message || 'Server returned an error';
-      } else if (error.request) {
-        errorMsg = 'No response from server. Please check your connection.';
+        // Refresh users list
+        fetchUsers();
       } else {
-        errorMsg = error.message;
+        // Handle error
+        setFormError(response.error.message || 'Error updating user');
+        showToast('error', 'Update Failed', response.error.message || 'Error updating user');
       }
 
-      setFormError(errorMsg);
-
-      // Show error toast
-      showToast('error', 'Update Failed', errorMsg);
+      setLoading(false);
+    } catch (error) {
+      console.error('Unexpected error updating user:', error);
+      setLoading(false);
+      setFormError('An unexpected error occurred');
+      showToast('error', 'Update Failed', 'An unexpected error occurred');
     }
   };
 
@@ -315,45 +274,28 @@ const UserManagement = () => {
     try {
       setLoading(true);
 
-      const config = {
-        headers: {
-          'x-auth-token': token
-        }
-      };
+      const response = await authService.deleteUser(token, rowData._id);
 
-      await axios.delete(
-        `http://localhost:5000/api/auth/users/${rowData._id}`,
-        config
-      );
+      if (response.success) {
+        // Show success message
+        showToast(
+          'success',
+          'User Deleted',
+          `User ${rowData.username} has been deleted successfully`
+        );
 
-      setLoading(false);
-
-      // Show success message
-      showToast(
-        'success',
-        'User Deleted',
-        `User ${rowData.username} has been deleted successfully`
-      );
-
-      // Refresh users list
-      fetchUsers();
-    } catch (error) {
-      console.error('Error deleting user:', error);
-      setLoading(false);
-
-      // Get detailed error message
-      let errorMsg = 'Error deleting user';
-
-      if (error.response) {
-        errorMsg = error.response.data?.message || 'Server returned an error';
-      } else if (error.request) {
-        errorMsg = 'No response from server. Please check your connection.';
+        // Refresh users list
+        fetchUsers();
       } else {
-        errorMsg = error.message;
+        // Handle error
+        showToast('error', 'Deletion Failed', response.error.message || 'Error deleting user');
       }
 
-      // Show error toast
-      showToast('error', 'Deletion Failed', errorMsg);
+      setLoading(false);
+    } catch (error) {
+      console.error('Unexpected error deleting user:', error);
+      setLoading(false);
+      showToast('error', 'Deletion Failed', 'An unexpected error occurred');
     }
   };
 

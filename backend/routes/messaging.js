@@ -227,9 +227,9 @@ router.post('/send', protect, async (req, res) => {
     await messageHistory.save();
 
     // Import messaging service
-    let messagingService;
+    let messageSender;
     try {
-      messagingService = require('../services/messagingService');
+      messageSender = require('../services/messagingService');
       console.log('Messaging service loaded successfully');
     } catch (error) {
       console.error('Error loading messaging service:', error);
@@ -272,7 +272,7 @@ router.post('/send', protect, async (req, res) => {
             // Send message based on message type
             if (messageType === 'SMS' || messageType === 'Both') {
               // Send SMS
-              sendResult = await messagingService.sendSMS(
+              sendResult = await messageSender.sendSMS(
                 recipient.contactNumber,
                 recipient.content
               );
@@ -286,15 +286,32 @@ router.post('/send', protect, async (req, res) => {
 
             if (messageType === 'WhatsApp' || messageType === 'Both') {
               // Send WhatsApp message
-              sendResult = await messagingService.sendWhatsApp(
+              sendResult = await messageSender.sendWhatsApp(
                 recipient.contactNumber,
                 recipient.content
               );
 
               if (sendResult.success) {
                 console.log(`WhatsApp message sent to student ID ${recipient.student}: ${sendResult.sid}`);
+
+                // Log additional information about WhatsApp sandbox if applicable
+                if (sendResult.sandboxMode) {
+                  console.warn(`WhatsApp message sent in SANDBOX MODE to ${recipient.contactNumber}`);
+                  console.warn(`If the recipient hasn't opted in, they won't receive the message`);
+                  console.warn(`They need to send "join ${process.env.TWILIO_WHATSAPP_SANDBOX_CODE || 'your-sandbox-code'}" to ${process.env.TWILIO_WHATSAPP_NUMBER}`);
+                }
               } else {
                 console.error(`Failed to send WhatsApp message to student ID ${recipient.student}: ${sendResult.error}`);
+                if (sendResult.errorDetails) {
+                  console.error(`Error details: ${sendResult.errorDetails}`);
+                }
+
+                // If this is a sandbox opt-in error, provide more helpful information
+                if (sendResult.errorCode === 63001) {
+                  console.warn(`IMPORTANT: The recipient ${recipient.contactNumber} has not opted into your WhatsApp sandbox`);
+                  console.warn(`They must send "join ${process.env.TWILIO_WHATSAPP_SANDBOX_CODE || 'your-sandbox-code'}" to ${process.env.TWILIO_WHATSAPP_NUMBER}`);
+                  console.warn(`See: https://www.twilio.com/docs/whatsapp/sandbox for more information`);
+                }
               }
             }
 
@@ -302,6 +319,12 @@ router.post('/send', protect, async (req, res) => {
             const status = !sendResult ? 'Failed' :
                           sendResult.success === false ? 'Failed' :
                           sendResult.mock ? 'Mock-Sent' : 'Sent';
+
+            // Log more detailed information about mock messages
+            if (sendResult && sendResult.mock) {
+              console.warn(`MOCK MESSAGE: Message to ${recipient.contactNumber} was not actually sent.`);
+              console.warn('This is a simulation. To send real messages, configure Twilio properly.');
+            }
 
             // Update this recipient's status
             await MessageHistory.updateOne(
@@ -348,12 +371,25 @@ router.post('/send', protect, async (req, res) => {
       }
     });
 
+    // Check if Twilio is properly configured
+    const twilioStatus = require('../services/messagingService');
+    const isMockMode = !twilioStatus.twilioClient;
+    const isWhatsAppSandbox = messageType.includes('WhatsApp') && !process.env.TWILIO_WHATSAPP_BUSINESS_ID;
+
     res.status(201).json({
       success: true,
       data: {
         messageId: messageHistory._id,
         recipientCount: recipients.length,
-        message: `Message queued for sending to ${recipients.length} recipients`
+        message: `Message queued for sending to ${recipients.length} recipients`,
+        mockMode: isMockMode,
+        whatsAppSandboxMode: isWhatsAppSandbox,
+        note: isMockMode ?
+          "IMPORTANT: Running in MOCK MODE. Messages are not actually being sent to recipients. Configure Twilio to send real messages." :
+          "Messages will be sent to actual recipients.",
+        whatsAppNote: isWhatsAppSandbox && !isMockMode ?
+          `IMPORTANT: Using WhatsApp Sandbox. Recipients must opt in by sending "join ${process.env.TWILIO_WHATSAPP_SANDBOX_CODE || 'your-sandbox-code'}" to ${process.env.TWILIO_WHATSAPP_NUMBER} before they can receive messages.` :
+          undefined
       }
     });
   } catch (error) {

@@ -2,8 +2,8 @@ import { useState, useRef, useContext } from 'react';
 import { Button } from 'primereact/button';
 import { Toast } from 'primereact/toast';
 import { BreadCrumb } from 'primereact/breadcrumb';
-import axios from 'axios';
 import AuthContext from '../context/AuthContext';
+import { classService } from '../services';
 import ClassList from '../components/classes/ClassList';
 import ClassForm from '../components/classes/ClassForm';
 import '../styles/ClassManagement.css';
@@ -42,35 +42,36 @@ const ClassManagement = () => {
   // Handle save class
   const handleSaveClass = async (formData, mode) => {
     try {
-      const config = {
-        headers: {
-          'Content-Type': 'application/json',
-          'x-auth-token': token
-        }
-      };
-
       let response;
 
       if (mode === 'add') {
         // Create new class
-        response = await axios.post('http://localhost:5000/api/classes', formData, config);
+        response = await classService.createClass(token, formData);
 
-        toast.current.show({
-          severity: 'success',
-          summary: 'Success',
-          detail: 'Class added successfully',
-          life: 3000
-        });
+        if (response.success) {
+          toast.current.show({
+            severity: 'success',
+            summary: 'Success',
+            detail: 'Class added successfully',
+            life: 3000
+          });
+        } else {
+          throw new Error(response.error.message || 'Failed to create class');
+        }
       } else {
         // Update existing class
-        response = await axios.put(`http://localhost:5000/api/classes/${selectedClass._id}`, formData, config);
+        response = await classService.updateClass(token, selectedClass._id, formData);
 
-        toast.current.show({
-          severity: 'success',
-          summary: 'Success',
-          detail: 'Class updated successfully',
-          life: 3000
-        });
+        if (response.success) {
+          toast.current.show({
+            severity: 'success',
+            summary: 'Success',
+            detail: 'Class updated successfully',
+            life: 3000
+          });
+        } else {
+          throw new Error(response.error.message || 'Failed to update class');
+        }
       }
 
       // Trigger list refresh
@@ -83,7 +84,7 @@ const ClassManagement = () => {
       toast.current.show({
         severity: 'error',
         summary: 'Error',
-        detail: error.response?.data?.message || 'Failed to save class',
+        detail: error.message || 'Failed to save class',
         life: 3000
       });
 

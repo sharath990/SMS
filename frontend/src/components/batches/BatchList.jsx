@@ -6,7 +6,7 @@ import { InputText } from 'primereact/inputtext';
 import { Dropdown } from 'primereact/dropdown';
 import { Toast } from 'primereact/toast';
 import { ConfirmDialog, confirmDialog } from 'primereact/confirmdialog';
-import axios from 'axios';
+import { batchService } from '../../services';
 
 const BatchList = ({ token, onEdit, refreshList }) => {
   const [batches, setBatches] = useState([]);
@@ -36,34 +36,36 @@ const BatchList = ({ token, onEdit, refreshList }) => {
     try {
       setLoading(true);
 
-      // Build query parameters
-      const params = new URLSearchParams();
+      // Prepare filter object for the service
+      const filterParams = {};
 
-      if (filters.year) params.append('year', filters.year);
-      if (filters.isGraduated !== null) params.append('isGraduated', filters.isGraduated);
-      if (filters.search) {
-        // Search is applied to name field in the backend
-        params.append('search', filters.search);
+      if (filters.year) filterParams.year = filters.year;
+      if (filters.isGraduated !== null) filterParams.isGraduated = filters.isGraduated;
+      if (filters.search) filterParams.search = filters.search;
+
+      const response = await batchService.getBatches(token, filterParams);
+
+      if (response.success) {
+        setBatches(response.data.data);
+      } else {
+        console.error('Error loading batches:', response.error);
+        toast.current.show({
+          severity: 'error',
+          summary: 'Error',
+          detail: response.error.message || 'Failed to load batches',
+          life: 3000
+        });
       }
 
-      const config = {
-        headers: {
-          'x-auth-token': token
-        }
-      };
-
-      const response = await axios.get(`http://localhost:5000/api/batches?${params.toString()}`, config);
-
-      setBatches(response.data.data);
       setLoading(false);
     } catch (error) {
-      console.error('Error loading batches:', error);
+      console.error('Unexpected error loading batches:', error);
       setLoading(false);
 
       toast.current.show({
         severity: 'error',
         summary: 'Error',
-        detail: 'Failed to load batches',
+        detail: 'An unexpected error occurred while loading batches',
         life: 3000
       });
     }
@@ -93,31 +95,37 @@ const BatchList = ({ token, onEdit, refreshList }) => {
     try {
       setLoading(true);
 
-      const config = {
-        headers: {
-          'x-auth-token': token
-        }
-      };
+      const response = await batchService.deleteBatch(token, id);
 
-      await axios.delete(`http://localhost:5000/api/batches/${id}`, config);
+      if (response.success) {
+        toast.current.show({
+          severity: 'success',
+          summary: 'Success',
+          detail: 'Batch deleted successfully',
+          life: 3000
+        });
 
-      toast.current.show({
-        severity: 'success',
-        summary: 'Success',
-        detail: 'Batch deleted successfully',
-        life: 3000
-      });
+        // Reload batches
+        loadBatches();
+      } else {
+        console.error('Error deleting batch:', response.error);
+        setLoading(false);
 
-      // Reload batches
-      loadBatches();
+        toast.current.show({
+          severity: 'error',
+          summary: 'Error',
+          detail: response.error.message || 'Failed to delete batch',
+          life: 3000
+        });
+      }
     } catch (error) {
-      console.error('Error deleting batch:', error);
+      console.error('Unexpected error deleting batch:', error);
       setLoading(false);
 
       toast.current.show({
         severity: 'error',
         summary: 'Error',
-        detail: error.response?.data?.message || 'Failed to delete batch',
+        detail: 'An unexpected error occurred while deleting batch',
         life: 3000
       });
     }

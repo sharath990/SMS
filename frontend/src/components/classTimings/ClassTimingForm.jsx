@@ -5,13 +5,9 @@ import { InputText } from 'primereact/inputtext';
 import { InputNumber } from 'primereact/inputnumber';
 import { ToggleButton } from 'primereact/togglebutton';
 import { classNames } from 'primereact/utils';
-import axios from 'axios';
 
 const ClassTimingForm = ({ visible, onHide, onSave, classTiming, mode }) => {
   const isEditMode = mode === 'edit';
-
-  // Get token from localStorage
-  const token = localStorage.getItem('token');
 
   const [formData, setFormData] = useState({
     period: 1,
@@ -117,22 +113,13 @@ const ClassTimingForm = ({ visible, onHide, onSave, classTiming, mode }) => {
           setSubmitting(false);
 
           // Handle API validation errors
-          if (error.response?.data?.message) {
-            // Try to extract field-specific errors
-            const message = error.response.data.message;
+          const errorMessage = error.message || 'An error occurred while saving the class timing';
 
-            // Set a general error
-            setFormErrors({
-              ...formErrors,
-              general: message
-            });
-          } else {
-            // Set a general error for non-API errors
-            setFormErrors({
-              ...formErrors,
-              general: 'An error occurred while saving the class timing'
-            });
-          }
+          // Set a general error
+          setFormErrors({
+            ...formErrors,
+            general: errorMessage
+          });
         });
     }
   };

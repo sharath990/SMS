@@ -2,8 +2,8 @@ import { useState, useRef, useContext } from 'react';
 import { Button } from 'primereact/button';
 import { Toast } from 'primereact/toast';
 import { BreadCrumb } from 'primereact/breadcrumb';
-import axios from 'axios';
 import AuthContext from '../context/AuthContext';
+import { subjectService } from '../services';
 import SubjectList from '../components/subjects/SubjectList';
 import SubjectForm from '../components/subjects/SubjectForm';
 import '../styles/SubjectManagement.css';
@@ -42,35 +42,36 @@ const SubjectManagement = () => {
   // Handle save subject
   const handleSaveSubject = async (formData, mode) => {
     try {
-      const config = {
-        headers: {
-          'Content-Type': 'application/json',
-          'x-auth-token': token
-        }
-      };
-
       let response;
 
       if (mode === 'add') {
         // Create new subject
-        response = await axios.post('http://localhost:5000/api/subjects', formData, config);
+        response = await subjectService.createSubject(token, formData);
 
-        toast.current.show({
-          severity: 'success',
-          summary: 'Success',
-          detail: 'Subject added successfully',
-          life: 3000
-        });
+        if (response.success) {
+          toast.current.show({
+            severity: 'success',
+            summary: 'Success',
+            detail: 'Subject added successfully',
+            life: 3000
+          });
+        } else {
+          throw new Error(response.error.message || 'Failed to create subject');
+        }
       } else {
         // Update existing subject
-        response = await axios.put(`http://localhost:5000/api/subjects/${selectedSubject._id}`, formData, config);
+        response = await subjectService.updateSubject(token, selectedSubject._id, formData);
 
-        toast.current.show({
-          severity: 'success',
-          summary: 'Success',
-          detail: 'Subject updated successfully',
-          life: 3000
-        });
+        if (response.success) {
+          toast.current.show({
+            severity: 'success',
+            summary: 'Success',
+            detail: 'Subject updated successfully',
+            life: 3000
+          });
+        } else {
+          throw new Error(response.error.message || 'Failed to update subject');
+        }
       }
 
       // Trigger list refresh
@@ -83,7 +84,7 @@ const SubjectManagement = () => {
       toast.current.show({
         severity: 'error',
         summary: 'Error',
-        detail: error.response?.data?.message || 'Failed to save subject',
+        detail: error.message || 'Failed to save subject',
         life: 3000
       });
 

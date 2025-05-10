@@ -6,7 +6,7 @@ import { InputNumber } from 'primereact/inputnumber';
 import { Checkbox } from 'primereact/checkbox';
 import { Calendar } from 'primereact/calendar';
 import { classNames } from 'primereact/utils';
-import axios from 'axios';
+import { batchService } from '../../services';
 
 const BatchForm = ({ visible, onHide, onSave, batch, mode }) => {
   const isEditMode = mode === 'edit';
@@ -27,13 +27,10 @@ const BatchForm = ({ visible, onHide, onSave, batch, mode }) => {
     if (visible) {
       const fetchBatches = async () => {
         try {
-          const response = await axios.get('http://localhost:5000/api/batches', {
-            headers: {
-              'x-auth-token': localStorage.getItem('token')
-            }
-          });
+          const token = localStorage.getItem('token');
+          const response = await batchService.getBatches(token);
 
-          if (response.data && response.data.data) {
+          if (response.success && response.data && response.data.data) {
             // Extract years from all batches
             const years = response.data.data.map(b => b.year);
             setExistingYears(years);

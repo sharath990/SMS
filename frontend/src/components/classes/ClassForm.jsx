@@ -5,7 +5,7 @@ import { InputText } from 'primereact/inputtext';
 import { Dropdown } from 'primereact/dropdown';
 import { Checkbox } from 'primereact/checkbox';
 import { classNames } from 'primereact/utils';
-import axios from 'axios';
+import { batchService } from '../../services';
 
 const ClassForm = ({ visible, onHide, onSave, classItem, mode }) => {
   const isEditMode = mode === 'edit';
@@ -40,16 +40,12 @@ const ClassForm = ({ visible, onHide, onSave, classItem, mode }) => {
     if (visible) {
       const fetchBatches = async () => {
         try {
-          const config = {
-            headers: {
-              'x-auth-token': localStorage.getItem('token')
-            }
-          };
+          const token = localStorage.getItem('token');
 
           // Get only non-graduated batches
-          const response = await axios.get('http://localhost:5000/api/batches?isGraduated=false', config);
+          const response = await batchService.getBatches(token, { isGraduated: false });
 
-          if (response.data && response.data.data) {
+          if (response.success && response.data && response.data.data) {
             // Map batches to dropdown options
             const options = response.data.data.map(batch => ({
               label: `${batch.name} (${batch.year})`,
@@ -188,33 +184,25 @@ const ClassForm = ({ visible, onHide, onSave, classItem, mode }) => {
           setSubmitting(false);
 
           // Handle API validation errors
-          if (error.response?.data?.message) {
-            // Try to extract field-specific errors
-            const message = error.response.data.message;
-            console.log('Error message from API:', message);
+          const errorMessage = error.message || 'An error occurred while saving the class';
+          console.log('Error message:', errorMessage);
 
-            if (message.includes('name')) {
-              setFormErrors({
-                ...formErrors,
-                name: message
-              });
-            } else if (message.includes('already exists')) {
-              setFormErrors({
-                ...formErrors,
-                general: message
-              });
-            } else {
-              // Set a general error
-              setFormErrors({
-                ...formErrors,
-                general: message
-              });
-            }
-          } else {
-            // Set a general error for non-API errors
+          // Try to extract field-specific errors
+          if (errorMessage.includes('name')) {
             setFormErrors({
               ...formErrors,
-              general: 'An error occurred while saving the class'
+              name: errorMessage
+            });
+          } else if (errorMessage.includes('already exists')) {
+            setFormErrors({
+              ...formErrors,
+              general: errorMessage
+            });
+          } else {
+            // Set a general error
+            setFormErrors({
+              ...formErrors,
+              general: errorMessage
             });
           }
         });

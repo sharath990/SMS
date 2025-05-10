@@ -2,8 +2,8 @@ import { useState, useRef, useContext } from 'react';
 import { Button } from 'primereact/button';
 import { Toast } from 'primereact/toast';
 import { BreadCrumb } from 'primereact/breadcrumb';
-import axios from 'axios';
 import AuthContext from '../context/AuthContext';
+import { classTimingService } from '../services';
 import ClassTimingList from '../components/classTimings/ClassTimingList';
 import ClassTimingForm from '../components/classTimings/ClassTimingForm';
 import ClassTimingView from '../components/classTimings/ClassTimingView';
@@ -50,35 +50,36 @@ const ClassTimingManagement = () => {
   // Handle save class timing
   const handleSaveClassTiming = async (formData, mode) => {
     try {
-      const config = {
-        headers: {
-          'Content-Type': 'application/json',
-          'x-auth-token': token
-        }
-      };
-
       let response;
 
       if (mode === 'add') {
         // Create new class timing
-        response = await axios.post('http://localhost:5000/api/class-timings', formData, config);
+        response = await classTimingService.createClassTiming(token, formData);
 
-        toast.current.show({
-          severity: 'success',
-          summary: 'Success',
-          detail: 'Class timing added successfully',
-          life: 3000
-        });
+        if (response.success) {
+          toast.current.show({
+            severity: 'success',
+            summary: 'Success',
+            detail: 'Class timing added successfully',
+            life: 3000
+          });
+        } else {
+          throw new Error(response.error.message || 'Failed to create class timing');
+        }
       } else {
         // Update existing class timing
-        response = await axios.put(`http://localhost:5000/api/class-timings/${selectedClassTiming._id}`, formData, config);
+        response = await classTimingService.updateClassTiming(token, selectedClassTiming._id, formData);
 
-        toast.current.show({
-          severity: 'success',
-          summary: 'Success',
-          detail: 'Class timing updated successfully',
-          life: 3000
-        });
+        if (response.success) {
+          toast.current.show({
+            severity: 'success',
+            summary: 'Success',
+            detail: 'Class timing updated successfully',
+            life: 3000
+          });
+        } else {
+          throw new Error(response.error.message || 'Failed to update class timing');
+        }
       }
 
       // Trigger list refresh
@@ -91,7 +92,7 @@ const ClassTimingManagement = () => {
       toast.current.show({
         severity: 'error',
         summary: 'Error',
-        detail: error.response?.data?.message || 'Failed to save class timing',
+        detail: error.message || 'Failed to save class timing',
         life: 3000
       });
 

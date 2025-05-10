@@ -130,37 +130,29 @@ const SubjectForm = ({ visible, onHide, onSave, subject, mode }) => {
           setSubmitting(false);
 
           // Handle API validation errors
-          if (error.response?.data?.message) {
-            // Try to extract field-specific errors
-            const message = error.response.data.message;
-            
-            if (message.includes('name')) {
-              setFormErrors({
-                ...formErrors,
-                name: message
-              });
-            } else if (message.includes('code')) {
-              setFormErrors({
-                ...formErrors,
-                code: message
-              });
-            } else if (message.includes('already exists')) {
-              setFormErrors({
-                ...formErrors,
-                general: message
-              });
-            } else {
-              // Set a general error
-              setFormErrors({
-                ...formErrors,
-                general: message
-              });
-            }
-          } else {
-            // Set a general error for non-API errors
+          const errorMessage = error.message || 'An error occurred while saving the subject';
+
+          // Try to extract field-specific errors
+          if (errorMessage.includes('name')) {
             setFormErrors({
               ...formErrors,
-              general: 'An error occurred while saving the subject'
+              name: errorMessage
+            });
+          } else if (errorMessage.includes('code')) {
+            setFormErrors({
+              ...formErrors,
+              code: errorMessage
+            });
+          } else if (errorMessage.includes('already exists')) {
+            setFormErrors({
+              ...formErrors,
+              general: errorMessage
+            });
+          } else {
+            // Set a general error
+            setFormErrors({
+              ...formErrors,
+              general: errorMessage
             });
           }
         });

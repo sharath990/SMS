@@ -6,7 +6,7 @@ import { Dropdown } from 'primereact/dropdown';
 import { Message } from 'primereact/message';
 import { Toast } from 'primereact/toast';
 import { classNames } from 'primereact/utils';
-import axios from 'axios';
+import { studentService, subjectService, classTimingService } from '../../services';
 
 const MessageComposition = ({ messageData, updateMessageData, templates, token, onNext, onPrevious, setPreviewData }) => {
   const toast = useRef(null);
@@ -49,12 +49,6 @@ const MessageComposition = ({ messageData, updateMessageData, templates, token, 
   // Fetch preview recipients
   const fetchPreviewRecipients = async () => {
     try {
-      const config = {
-        headers: {
-          'x-auth-token': token
-        }
-      };
-
       let recipients = [];
       let totalCount = 0;
 
@@ -68,11 +62,13 @@ const MessageComposition = ({ messageData, updateMessageData, templates, token, 
 
           // Fetch each student individually to ensure we get complete data
           const studentPromises = previewIds.map(id =>
-            axios.get(`http://localhost:5000/api/students/${id}`, config)
+            studentService.getStudentById(token, id)
           );
 
           const studentResponses = await Promise.all(studentPromises);
-          recipients = studentResponses.map(response => response.data.data);
+          recipients = studentResponses
+            .filter(response => response.success)
+            .map(response => response.data.data);
 
           console.log('Fetched individual students for preview:', recipients);
 
@@ -83,40 +79,37 @@ const MessageComposition = ({ messageData, updateMessageData, templates, token, 
 
           // Fallback to the old method if individual fetching fails
           console.log('Falling back to fetching all students');
-          const response = await axios.get('http://localhost:5000/api/students', config);
-          const allStudents = response.data.data;
-          recipients = allStudents.filter(student => messageData.recipientIds.includes(student._id));
-          totalCount = messageData.recipientIds.length;
+          const response = await studentService.getStudents(token);
+          if (response.success) {
+            const allStudents = response.data.data;
+            recipients = allStudents.filter(student => messageData.recipientIds.includes(student._id));
+            totalCount = messageData.recipientIds.length;
+          }
         }
       } else {
         // First, get the total count without limit
-        const countParams = new URLSearchParams();
-        countParams.append('isActive', 'true');
-        countParams.append('count', 'true'); // Just get the count
+        const countFilters = { isActive: true };
 
         // Add target-specific filters
         if (messageData.targetType === 'Section') {
-          countParams.append('stream', messageData.targetDetails.stream);
-          countParams.append('class', messageData.targetDetails.class);
-          countParams.append('section', messageData.targetDetails.section);
+          countFilters.stream = messageData.targetDetails.stream;
+          countFilters.class = messageData.targetDetails.class;
+          countFilters.section = messageData.targetDetails.section;
         } else if (messageData.targetType === 'Class') {
-          countParams.append('stream', messageData.targetDetails.stream);
-          countParams.append('class', messageData.targetDetails.class);
+          countFilters.stream = messageData.targetDetails.stream;
+          countFilters.class = messageData.targetDetails.class;
         } else if (messageData.targetType === 'Stream') {
-          countParams.append('stream', messageData.targetDetails.stream);
+          countFilters.stream = messageData.targetDetails.stream;
         } else if (messageData.targetType === 'Batch') {
-          countParams.append('batch', messageData.targetDetails.batch);
+          countFilters.batch = messageData.targetDetails.batch;
         } else if (messageData.targetType === 'MultipleStreams' && messageData.targetDetails.streams) {
           // For multiple streams, we need to make separate count requests
           if (messageData.targetDetails.streams.length > 0) {
             const streamCounts = await Promise.all(
               messageData.targetDetails.streams.map(async (stream) => {
-                const streamParams = new URLSearchParams();
-                streamParams.append('isActive', 'true');
-                streamParams.append('count', 'true');
-                streamParams.append('stream', stream);
-                const response = await axios.get(`http://localhost:5000/api/students?${streamParams.toString()}`, config);
-                return response.data.total || 0;
+                const streamFilters = { isActive: true, stream };
+                const response = await studentService.getStudents(token, streamFilters, 0, 1, null, null, true);
+                return response.success ? (response.data.total || 0) : 0;
               })
             );
             totalCount = streamCounts.reduce((sum, count) => sum + count, 0);
@@ -126,13 +119,13 @@ const MessageComposition = ({ messageData, updateMessageData, templates, token, 
           if (messageData.targetDetails.classes.length > 0) {
             const classCounts = await Promise.all(
               messageData.targetDetails.classes.map(async (className) => {
-                const classParams = new URLSearchParams();
-                classParams.append('isActive', 'true');
-                classParams.append('count', 'true');
-                classParams.append('stream', messageData.targetDetails.stream);
-                classParams.append('class', className);
-                const response = await axios.get(`http://localhost:5000/api/students?${classParams.toString()}`, config);
-                return response.data.total || 0;
+                const classFilters = {
+                  isActive: true,
+                  stream: messageData.targetDetails.stream,
+                  class: className
+                };
+                const response = await studentService.getStudents(token, classFilters, 0, 1, null, null, true);
+                return response.success ? (response.data.total || 0) : 0;
               })
             );
             totalCount = classCounts.reduce((sum, count) => sum + count, 0);
@@ -142,14 +135,14 @@ const MessageComposition = ({ messageData, updateMessageData, templates, token, 
           if (messageData.targetDetails.sections.length > 0) {
             const sectionCounts = await Promise.all(
               messageData.targetDetails.sections.map(async (section) => {
-                const sectionParams = new URLSearchParams();
-                sectionParams.append('isActive', 'true');
-                sectionParams.append('count', 'true');
-                sectionParams.append('stream', messageData.targetDetails.stream);
-                sectionParams.append('class', messageData.targetDetails.class);
-                sectionParams.append('section', section);
-                const response = await axios.get(`http://localhost:5000/api/students?${sectionParams.toString()}`, config);
-                return response.data.total || 0;
+                const sectionFilters = {
+                  isActive: true,
+                  stream: messageData.targetDetails.stream,
+                  class: messageData.targetDetails.class,
+                  section: section
+                };
+                const response = await studentService.getStudents(token, sectionFilters, 0, 1, null, null, true);
+                return response.success ? (response.data.total || 0) : 0;
               })
             );
             totalCount = sectionCounts.reduce((sum, count) => sum + count, 0);
@@ -159,71 +152,70 @@ const MessageComposition = ({ messageData, updateMessageData, templates, token, 
           if (messageData.targetDetails.batches.length > 0) {
             const batchCounts = await Promise.all(
               messageData.targetDetails.batches.map(async (batch) => {
-                const batchParams = new URLSearchParams();
-                batchParams.append('isActive', 'true');
-                batchParams.append('count', 'true');
-                batchParams.append('batch', batch);
-                const response = await axios.get(`http://localhost:5000/api/students?${batchParams.toString()}`, config);
-                return response.data.total || 0;
+                const batchFilters = { isActive: true, batch };
+                const response = await studentService.getStudents(token, batchFilters, 0, 1, null, null, true);
+                return response.success ? (response.data.total || 0) : 0;
               })
             );
             totalCount = batchCounts.reduce((sum, count) => sum + count, 0);
           }
         } else if (messageData.targetType === 'College') {
           // For entire college, just get the total count of active students
-          const response = await axios.get(`http://localhost:5000/api/students?${countParams.toString()}`, config);
-          totalCount = response.data.total || 0;
+          const response = await studentService.getStudents(token, countFilters, 0, 1, null, null, true);
+          if (response.success) {
+            totalCount = response.data.total || 0;
+          }
         }
 
         // Now get a few sample recipients for preview
-        const previewParams = new URLSearchParams();
-        previewParams.append('isActive', 'true');
-        previewParams.append('limit', '5'); // Just get a few for preview
+        const previewFilters = { isActive: true };
 
         if (messageData.targetType === 'Section') {
-          previewParams.append('stream', messageData.targetDetails.stream);
-          previewParams.append('class', messageData.targetDetails.class);
-          previewParams.append('section', messageData.targetDetails.section);
+          previewFilters.stream = messageData.targetDetails.stream;
+          previewFilters.class = messageData.targetDetails.class;
+          previewFilters.section = messageData.targetDetails.section;
         } else if (messageData.targetType === 'Class') {
-          previewParams.append('stream', messageData.targetDetails.stream);
-          previewParams.append('class', messageData.targetDetails.class);
+          previewFilters.stream = messageData.targetDetails.stream;
+          previewFilters.class = messageData.targetDetails.class;
         } else if (messageData.targetType === 'Stream') {
-          previewParams.append('stream', messageData.targetDetails.stream);
+          previewFilters.stream = messageData.targetDetails.stream;
         } else if (messageData.targetType === 'Batch') {
-          previewParams.append('batch', messageData.targetDetails.batch);
+          previewFilters.batch = messageData.targetDetails.batch;
         } else if (messageData.targetType === 'MultipleStreams' && messageData.targetDetails.streams) {
           // For multiple streams, just get a sample from the first stream
           if (messageData.targetDetails.streams.length > 0) {
-            previewParams.append('stream', messageData.targetDetails.streams[0]);
+            previewFilters.stream = messageData.targetDetails.streams[0];
           }
         } else if (messageData.targetType === 'MultipleClasses' && messageData.targetDetails.classes) {
-          previewParams.append('stream', messageData.targetDetails.stream);
+          previewFilters.stream = messageData.targetDetails.stream;
           // For multiple classes, just get a sample from the first class
           if (messageData.targetDetails.classes.length > 0) {
-            previewParams.append('class', messageData.targetDetails.classes[0]);
+            previewFilters.class = messageData.targetDetails.classes[0];
           }
         } else if (messageData.targetType === 'MultipleSections' && messageData.targetDetails.sections) {
-          previewParams.append('stream', messageData.targetDetails.stream);
-          previewParams.append('class', messageData.targetDetails.class);
+          previewFilters.stream = messageData.targetDetails.stream;
+          previewFilters.class = messageData.targetDetails.class;
           // For multiple sections, just get a sample from the first section
           if (messageData.targetDetails.sections.length > 0) {
-            previewParams.append('section', messageData.targetDetails.sections[0]);
+            previewFilters.section = messageData.targetDetails.sections[0];
           }
         } else if (messageData.targetType === 'MultipleBatches' && messageData.targetDetails.batches) {
           // For multiple batches, just get a sample from the first batch
           if (messageData.targetDetails.batches.length > 0) {
-            previewParams.append('batch', messageData.targetDetails.batches[0]);
+            previewFilters.batch = messageData.targetDetails.batches[0];
           }
         }
 
         // Get sample recipients for preview
-        const response = await axios.get(`http://localhost:5000/api/students?${previewParams.toString()}`, config);
-        recipients = response.data.data;
+        const response = await studentService.getStudents(token, previewFilters, 0, 5);
+        if (response.success) {
+          recipients = response.data.data;
 
-        // If we didn't get a total count from the specific target type handlers above,
-        // use the total from the response
-        if (totalCount === 0 && response.data.total) {
-          totalCount = response.data.total;
+          // If we didn't get a total count from the specific target type handlers above,
+          // use the total from the response
+          if (totalCount === 0 && response.data.total) {
+            totalCount = response.data.total;
+          }
         }
       }
 
@@ -393,19 +385,14 @@ const MessageComposition = ({ messageData, updateMessageData, templates, token, 
       try {
         setLoading(true);
 
-        const config = {
-          headers: {
-            'Content-Type': 'application/json',
-            'x-auth-token': token
-          }
-        };
-
         // Fetch subject details if selected
         let subjectData = null;
         if (messageData.subjectId) {
           try {
-            const subjectResponse = await axios.get(`http://localhost:5000/api/subjects/${messageData.subjectId}`, config);
-            subjectData = subjectResponse.data.data;
+            const subjectResponse = await subjectService.getSubjectById(token, messageData.subjectId);
+            if (subjectResponse.success) {
+              subjectData = subjectResponse.data.data;
+            }
           } catch (error) {
             console.error('Error fetching subject details:', error);
           }
@@ -415,8 +402,10 @@ const MessageComposition = ({ messageData, updateMessageData, templates, token, 
         let classTimingData = null;
         if (messageData.classTimingId) {
           try {
-            const classTimingResponse = await axios.get(`http://localhost:5000/api/class-timings/${messageData.classTimingId}`, config);
-            classTimingData = classTimingResponse.data.data;
+            const classTimingResponse = await classTimingService.getClassTimingById(token, messageData.classTimingId);
+            if (classTimingResponse.success) {
+              classTimingData = classTimingResponse.data.data;
+            }
           } catch (error) {
             console.error('Error fetching class timing details:', error);
           }

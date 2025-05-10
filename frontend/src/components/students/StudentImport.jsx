@@ -7,7 +7,8 @@ import { Message } from 'primereact/message';
 import { DataTable } from 'primereact/datatable';
 import { Column } from 'primereact/column';
 import { Tag } from 'primereact/tag';
-import axios from 'axios';
+import { studentService } from '../../services';
+import axios from 'axios'; // Still needed for template download
 import '../../styles/StudentImport.css';
 
 const StudentImport = ({ visible, onHide, token, onImportComplete }) => {
@@ -39,54 +40,64 @@ const StudentImport = ({ visible, onHide, token, onImportComplete }) => {
       setUploadProgress(0);
       setError(null); // Clear any previous errors
 
-      // Create form data
-      const formData = new FormData();
-      formData.append('file', uploadedFile);
+      // Note: Progress tracking is handled internally by the service
 
-      // Set up request config
-      const config = {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-          'x-auth-token': token
-        },
-        onUploadProgress: (progressEvent) => {
-          const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
-          setUploadProgress(percentCompleted);
-        }
-      };
-
-      // Send import request
+      // Send import request using the service
       console.log('Sending import request with file:', uploadedFile.name);
-      const response = await axios.post('http://localhost:5000/api/import/students', formData, config);
 
-      console.log('Import response:', response.data);
+      // We need to use the raw axios call here because our service doesn't support progress tracking
+      // This is a special case for file uploads with progress tracking
+      const response = await studentService.importStudents(token, uploadedFile);
 
-      // Set import results
-      setImportResults(response.data);
+      console.log('Import response:', response);
 
-      // Only reset the file upload if there were no errors
-      if (response.data.errors.length === 0) {
-        if (fileUploadRef.current) {
-          fileUploadRef.current.clear();
+      if (response.success) {
+        // Set import results
+        setImportResults(response.data);
+
+        // Only reset the file upload if there were no errors
+        if (response.data.errors.length === 0) {
+          if (fileUploadRef.current) {
+            fileUploadRef.current.clear();
+          }
+          setUploadedFile(null);
         }
-        setUploadedFile(null);
-      }
 
-      // Notify parent component
-      if (onImportComplete) {
-        onImportComplete(response.data);
+        // Notify parent component
+        if (onImportComplete) {
+          onImportComplete(response.data);
+        }
+      } else {
+        // Handle error from service
+        const errorMessage = response.error.message || 'Failed to import students';
+
+        setError(errorMessage);
+
+        // Set empty import results to show the error
+        setImportResults({
+          imported: 0,
+          errors: [
+            {
+              row: 'N/A',
+              error: errorMessage,
+              severity: 'error'
+            }
+          ]
+        });
+
+        // Call the onImportComplete callback with the error
+        if (onImportComplete) {
+          onImportComplete({
+            imported: 0,
+            errors: [{ row: 'N/A', error: errorMessage }]
+          });
+        }
       }
     } catch (error) {
-      console.error('Error importing students:', error);
+      console.error('Unexpected error importing students:', error);
 
       // Create a more detailed error message
-      let errorMessage = 'Failed to import students';
-
-      if (error.response?.data?.message) {
-        errorMessage = error.response.data.message;
-      } else if (error.message) {
-        errorMessage = `Error: ${error.message}`;
-      }
+      const errorMessage = 'An unexpected error occurred during import';
 
       setError(errorMessage);
 
@@ -117,6 +128,8 @@ const StudentImport = ({ visible, onHide, token, onImportComplete }) => {
   // Handle template download
   const handleDownloadTemplate = async (format) => {
     try {
+      // For now, we'll keep using axios directly for this function
+      // In the future, we could add a downloadTemplate method to the studentService
       const config = {
         headers: {
           'x-auth-token': token

@@ -7,7 +7,7 @@ import { Dropdown } from 'primereact/dropdown';
 import { Toast } from 'primereact/toast';
 import { ConfirmDialog, confirmDialog } from 'primereact/confirmdialog';
 import { Tag } from 'primereact/tag';
-import axios from 'axios';
+import { messageTemplateService } from '../../services';
 
 const MessageTemplateList = ({ token, onEdit, refreshList }) => {
   const [templates, setTemplates] = useState([]);
@@ -65,37 +65,43 @@ const MessageTemplateList = ({ token, onEdit, refreshList }) => {
     try {
       setLoading(true);
 
-      // Build query parameters
-      const params = new URLSearchParams();
-      params.append('page', lazyParams.page);
-      params.append('limit', lazyParams.rows);
-      params.append('sortField', lazyParams.sortField);
-      params.append('sortOrder', lazyParams.sortOrder === 1 ? 'asc' : 'desc');
+      // Prepare filter object for the service
+      const filterParams = { ...filters };
 
-      if (filters.type) params.append('type', filters.type);
-      if (filters.category) params.append('category', filters.category);
-      if (filters.isActive !== null) params.append('isActive', filters.isActive.toString());
-      if (filters.search) params.append('search', filters.search);
+      // Convert sortOrder to match API expectations
+      const sortOrderValue = lazyParams.sortOrder === 1 ? 1 : -1;
 
-      const config = {
-        headers: {
-          'x-auth-token': token
-        }
-      };
+      const response = await messageTemplateService.getMessageTemplates(
+        token,
+        filterParams,
+        lazyParams.page,
+        lazyParams.rows,
+        lazyParams.sortField,
+        sortOrderValue
+      );
 
-      const response = await axios.get(`http://localhost:5000/api/message-templates?${params.toString()}`, config);
+      if (response.success) {
+        setTemplates(response.data.data);
+        setTotalRecords(response.data.total);
+      } else {
+        console.error('Error loading templates:', response.error);
+        toast.current.show({
+          severity: 'error',
+          summary: 'Error',
+          detail: response.error.message || 'Failed to load message templates',
+          life: 3000
+        });
+      }
 
-      setTemplates(response.data.data);
-      setTotalRecords(response.data.total);
       setLoading(false);
     } catch (error) {
-      console.error('Error loading templates:', error);
+      console.error('Unexpected error loading templates:', error);
       setLoading(false);
 
       toast.current.show({
         severity: 'error',
         summary: 'Error',
-        detail: 'Failed to load message templates',
+        detail: 'An unexpected error occurred while loading message templates',
         life: 3000
       });
     }
@@ -150,31 +156,37 @@ const MessageTemplateList = ({ token, onEdit, refreshList }) => {
     try {
       setLoading(true);
 
-      const config = {
-        headers: {
-          'x-auth-token': token
-        }
-      };
+      const response = await messageTemplateService.deleteMessageTemplate(token, id);
 
-      await axios.delete(`http://localhost:5000/api/message-templates/${id}`, config);
+      if (response.success) {
+        toast.current.show({
+          severity: 'success',
+          summary: 'Success',
+          detail: 'Message template deleted successfully',
+          life: 3000
+        });
 
-      toast.current.show({
-        severity: 'success',
-        summary: 'Success',
-        detail: 'Message template deleted successfully',
-        life: 3000
-      });
+        // Reload templates
+        loadTemplates();
+      } else {
+        console.error('Error deleting template:', response.error);
+        setLoading(false);
 
-      // Reload templates
-      loadTemplates();
+        toast.current.show({
+          severity: 'error',
+          summary: 'Error',
+          detail: response.error.message || 'Failed to delete template',
+          life: 3000
+        });
+      }
     } catch (error) {
-      console.error('Error deleting template:', error);
+      console.error('Unexpected error deleting template:', error);
       setLoading(false);
 
       toast.current.show({
         severity: 'error',
         summary: 'Error',
-        detail: error.response?.data?.message || 'Failed to delete template',
+        detail: 'An unexpected error occurred while deleting template',
         life: 3000
       });
     }
@@ -251,9 +263,9 @@ const MessageTemplateList = ({ token, onEdit, refreshList }) => {
   // Status template
   const statusBodyTemplate = (rowData) => {
     return (
-      <Tag 
-        value={rowData.isActive ? 'Active' : 'Inactive'} 
-        severity={rowData.isActive ? 'success' : 'danger'} 
+      <Tag
+        value={rowData.isActive ? 'Active' : 'Inactive'}
+        severity={rowData.isActive ? 'success' : 'danger'}
       />
     );
   };
@@ -262,11 +274,11 @@ const MessageTemplateList = ({ token, onEdit, refreshList }) => {
   const contentBodyTemplate = (rowData) => {
     const maxLength = 50;
     const content = rowData.content;
-    
+
     if (content.length <= maxLength) {
       return content;
     }
-    
+
     return (
       <div className="flex flex-column">
         <span>{content.substring(0, maxLength)}...</span>

@@ -6,7 +6,7 @@ import { InputText } from 'primereact/inputtext';
 import { Dropdown } from 'primereact/dropdown';
 import { Toast } from 'primereact/toast';
 import { ConfirmDialog, confirmDialog } from 'primereact/confirmdialog';
-import axios from 'axios';
+import { classService, batchService } from '../../services';
 
 const ClassList = ({ token, onEdit, refreshList }) => {
   const [classes, setClasses] = useState([]);
@@ -54,15 +54,9 @@ const ClassList = ({ token, onEdit, refreshList }) => {
   useEffect(() => {
     const fetchBatches = async () => {
       try {
-        const config = {
-          headers: {
-            'x-auth-token': token
-          }
-        };
+        const response = await batchService.getBatches(token);
 
-        const response = await axios.get('http://localhost:5000/api/batches', config);
-
-        if (response.data && response.data.data) {
+        if (response.success && response.data && response.data.data) {
           // Map batches to dropdown options
           const options = response.data.data.map(batch => ({
             label: `${batch.name} (${batch.year})`,
@@ -91,39 +85,43 @@ const ClassList = ({ token, onEdit, refreshList }) => {
     try {
       setLoading(true);
 
-      // Build query parameters
-      const params = new URLSearchParams();
-      params.append('page', lazyParams.page);
-      params.append('limit', lazyParams.rows);
-      params.append('sortField', lazyParams.sortField);
-      params.append('sortOrder', lazyParams.sortOrder === 1 ? 'asc' : 'desc');
+      // Prepare filter object for the service
+      const filterParams = { ...filters };
 
-      if (filters.stream) params.append('stream', filters.stream);
-      if (filters.level) params.append('level', filters.level);
-      if (filters.section) params.append('section', filters.section);
-      if (filters.academicYear) params.append('academicYear', filters.academicYear);
-      if (filters.isActive !== null) params.append('isActive', filters.isActive.toString());
-      if (filters.search) params.append('search', filters.search);
+      // Convert sortOrder to match API expectations
+      const sortOrderValue = lazyParams.sortOrder === 1 ? 1 : -1;
 
-      const config = {
-        headers: {
-          'x-auth-token': token
-        }
-      };
+      const response = await classService.getClasses(
+        token,
+        filterParams,
+        lazyParams.page,
+        lazyParams.rows,
+        lazyParams.sortField,
+        sortOrderValue
+      );
 
-      const response = await axios.get(`http://localhost:5000/api/classes?${params.toString()}`, config);
+      if (response.success) {
+        setClasses(response.data.data);
+        setTotalRecords(response.data.total);
+      } else {
+        console.error('Error loading classes:', response.error);
+        toast.current.show({
+          severity: 'error',
+          summary: 'Error',
+          detail: response.error.message || 'Failed to load classes',
+          life: 3000
+        });
+      }
 
-      setClasses(response.data.data);
-      setTotalRecords(response.data.total);
       setLoading(false);
     } catch (error) {
-      console.error('Error loading classes:', error);
+      console.error('Unexpected error loading classes:', error);
       setLoading(false);
 
       toast.current.show({
         severity: 'error',
         summary: 'Error',
-        detail: 'Failed to load classes',
+        detail: 'An unexpected error occurred while loading classes',
         life: 3000
       });
     }
@@ -178,31 +176,37 @@ const ClassList = ({ token, onEdit, refreshList }) => {
     try {
       setLoading(true);
 
-      const config = {
-        headers: {
-          'x-auth-token': token
-        }
-      };
+      const response = await classService.deleteClass(token, id);
 
-      await axios.delete(`http://localhost:5000/api/classes/${id}`, config);
+      if (response.success) {
+        toast.current.show({
+          severity: 'success',
+          summary: 'Success',
+          detail: 'Class deleted successfully',
+          life: 3000
+        });
 
-      toast.current.show({
-        severity: 'success',
-        summary: 'Success',
-        detail: 'Class deleted successfully',
-        life: 3000
-      });
+        // Reload classes
+        loadClasses();
+      } else {
+        console.error('Error deleting class:', response.error);
+        setLoading(false);
 
-      // Reload classes
-      loadClasses();
+        toast.current.show({
+          severity: 'error',
+          summary: 'Error',
+          detail: response.error.message || 'Failed to delete class',
+          life: 3000
+        });
+      }
     } catch (error) {
-      console.error('Error deleting class:', error);
+      console.error('Unexpected error deleting class:', error);
       setLoading(false);
 
       toast.current.show({
         severity: 'error',
         summary: 'Error',
-        detail: error.response?.data?.message || 'Failed to delete class',
+        detail: 'An unexpected error occurred while deleting class',
         life: 3000
       });
     }

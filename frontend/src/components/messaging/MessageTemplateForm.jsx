@@ -179,27 +179,19 @@ const MessageTemplateForm = ({ visible, onHide, onSave, template, mode }) => {
           setSubmitting(false);
 
           // Handle API validation errors
-          if (error.response?.data?.message) {
-            // Try to extract field-specific errors
-            const message = error.response.data.message;
+          const errorMessage = error.message || 'An error occurred while saving the template';
 
-            if (message.includes('name')) {
-              setFormErrors({
-                ...formErrors,
-                name: message
-              });
-            } else {
-              // Set a general error
-              setFormErrors({
-                ...formErrors,
-                general: message
-              });
-            }
-          } else {
-            // Set a general error for non-API errors
+          // Try to extract field-specific errors
+          if (errorMessage.includes('name')) {
             setFormErrors({
               ...formErrors,
-              general: 'An error occurred while saving the template'
+              name: errorMessage
+            });
+          } else {
+            // Set a general error
+            setFormErrors({
+              ...formErrors,
+              general: errorMessage
             });
           }
         });

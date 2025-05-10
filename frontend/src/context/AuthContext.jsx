@@ -1,5 +1,5 @@
 import { createContext, useState, useEffect } from 'react';
-import axios from 'axios';
+import { authService } from '../services';
 
 const AuthContext = createContext();
 
@@ -10,34 +10,35 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Set axios default headers
-  useEffect(() => {
-    if (token) {
-      axios.defaults.headers.common['x-auth-token'] = token;
-    } else {
-      delete axios.defaults.headers.common['x-auth-token'];
-    }
-  }, [token]);
+  // We don't need to set default headers anymore since we're using the service layer
 
   // Load user if token exists
   useEffect(() => {
     const loadUser = async () => {
       if (token) {
         try {
-          const config = {
-            headers: {
-              'x-auth-token': token
-            }
-          };
-          const res = await axios.get('http://localhost:5000/api/auth/user', config);
-          setUser(res.data.user);
-          setIsAuthenticated(true);
-        } catch (err) {
+          setLoading(true);
+          const response = await authService.getCurrentUser(token);
+
+          if (response.success) {
+            setUser(response.data.user);
+            setIsAuthenticated(true);
+          } else {
+            // Authentication failed
+            localStorage.removeItem('token');
+            setToken(null);
+            setUser(null);
+            setIsAuthenticated(false);
+            setError(response.error.message || 'Authentication failed');
+          }
+        } catch (error) {
+          // Unexpected error
+          console.error('Authentication error:', error);
           localStorage.removeItem('token');
           setToken(null);
           setUser(null);
           setIsAuthenticated(false);
-          setError(err.response?.data?.message || 'Authentication failed');
+          setError('Authentication failed - unexpected error');
         }
       }
       setLoading(false);
@@ -52,41 +53,58 @@ export const AuthProvider = ({ children }) => {
       setLoading(true);
       setError(null);
 
-      const res = await axios.post('http://localhost:5000/api/auth/register', userData);
+      const response = await authService.register(userData);
 
-      localStorage.setItem('token', res.data.token);
-      setToken(res.data.token);
-      setUser(res.data.user);
-      setIsAuthenticated(true);
+      if (response.success) {
+        localStorage.setItem('token', response.data.token);
+        setToken(response.data.token);
+        setUser(response.data.user);
+        setIsAuthenticated(true);
+        setLoading(false);
+        return { success: true };
+      } else {
+        setLoading(false);
+        setError(response.error.message || 'Registration failed');
+        return { success: false, error: response.error.message || 'Registration failed' };
+      }
+    } catch (error) {
+      console.error('Registration error:', error);
       setLoading(false);
-
-      return { success: true };
-    } catch (err) {
-      setLoading(false);
-      setError(err.response?.data?.message || 'Registration failed');
-      return { success: false, error: err.response?.data?.message || 'Registration failed' };
+      setError('Registration failed - unexpected error');
+      return { success: false, error: 'Registration failed - unexpected error' };
     }
   };
 
   // Login user
   const login = async (userData) => {
+    console.log('AuthContext: login function called with:', userData.email);
     try {
       setLoading(true);
       setError(null);
+      console.log('AuthContext: calling auth service login');
 
-      const res = await axios.post('http://localhost:5000/api/auth/login', userData);
+      const response = await authService.login(userData);
+      console.log('AuthContext: auth service login response:', response);
 
-      localStorage.setItem('token', res.data.token);
-      setToken(res.data.token);
-      setUser(res.data.user);
-      setIsAuthenticated(true);
+      if (response.success) {
+        console.log('AuthContext: login successful, setting token and user');
+        localStorage.setItem('token', response.data.token);
+        setToken(response.data.token);
+        setUser(response.data.user);
+        setIsAuthenticated(true);
+        setLoading(false);
+        return { success: true, user: response.data.user };
+      } else {
+        console.log('AuthContext: login failed:', response.error);
+        setLoading(false);
+        setError(response.error.message || 'Login failed');
+        return { success: false, error: response.error.message || 'Login failed' };
+      }
+    } catch (error) {
+      console.error('AuthContext: unexpected login error:', error);
       setLoading(false);
-
-      return { success: true, user: res.data.user };
-    } catch (err) {
-      setLoading(false);
-      setError(err.response?.data?.message || 'Login failed');
-      return { success: false, error: err.response?.data?.message || 'Login failed' };
+      setError('Login failed - unexpected error');
+      return { success: false, error: 'Login failed - unexpected error' };
     }
   };
 

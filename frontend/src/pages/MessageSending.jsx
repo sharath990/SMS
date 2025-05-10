@@ -4,8 +4,8 @@ import { Toast } from 'primereact/toast';
 import { BreadCrumb } from 'primereact/breadcrumb';
 import { Steps } from 'primereact/steps';
 import { Button } from 'primereact/button';
-import axios from 'axios';
 import AuthContext from '../context/AuthContext';
+import { messageTemplateService, messageService } from '../services';
 import MessageTypeSelection from '../components/messaging/MessageTypeSelection';
 import RecipientSelection from '../components/messaging/RecipientSelection';
 import SubjectSelection from '../components/messaging/SubjectSelection';
@@ -56,20 +56,26 @@ const MessageSending = () => {
 
   const fetchTemplates = async () => {
     try {
-      const config = {
-        headers: {
-          'x-auth-token': token
-        }
-      };
+      const filters = { isActive: true };
+      const response = await messageTemplateService.getMessageTemplates(token, filters);
 
-      const response = await axios.get('http://localhost:5000/api/message-templates?isActive=true', config);
-      setTemplates(response.data.data);
+      if (response.success) {
+        setTemplates(response.data.data);
+      } else {
+        console.error('Error fetching templates:', response.error);
+        toast.current.show({
+          severity: 'error',
+          summary: 'Error',
+          detail: response.error.message || 'Failed to load message templates',
+          life: 3000
+        });
+      }
     } catch (error) {
-      console.error('Error fetching templates:', error);
+      console.error('Unexpected error fetching templates:', error);
       toast.current.show({
         severity: 'error',
         summary: 'Error',
-        detail: 'Failed to load message templates',
+        detail: 'An unexpected error occurred while loading templates',
         life: 3000
       });
     }
@@ -98,43 +104,47 @@ const MessageSending = () => {
     try {
       setSending(true);
 
-      const config = {
-        headers: {
-          'Content-Type': 'application/json',
-          'x-auth-token': token
-        }
-      };
+      const response = await messageService.sendMessage(token, messageData);
 
-      const response = await axios.post('http://localhost:5000/api/messaging/send', messageData, config);
+      if (response.success) {
+        toast.current.show({
+          severity: 'success',
+          summary: 'Success',
+          detail: `Message sent successfully to ${response.data.data.recipientCount} recipients`,
+          life: 5000
+        });
 
-      toast.current.show({
-        severity: 'success',
-        summary: 'Success',
-        detail: `Message sent successfully to ${response.data.data.recipientCount} recipients`,
-        life: 5000
-      });
+        // Reset form
+        setMessageData({
+          messageType: null,
+          templateId: null,
+          content: '',
+          targetType: null,
+          targetDetails: {},
+          recipientIds: [],
+          subjectId: null,
+          classTimingId: null
+        });
+        setActiveIndex(0);
+      } else {
+        console.error('Error sending message:', response.error);
+        toast.current.show({
+          severity: 'error',
+          summary: 'Error',
+          detail: response.error.message || 'Failed to send message',
+          life: 3000
+        });
+      }
 
-      // Reset form
-      setMessageData({
-        messageType: null,
-        templateId: null,
-        content: '',
-        targetType: null,
-        targetDetails: {},
-        recipientIds: [],
-        subjectId: null,
-        classTimingId: null
-      });
-      setActiveIndex(0);
       setSending(false);
     } catch (error) {
-      console.error('Error sending message:', error);
+      console.error('Unexpected error sending message:', error);
       setSending(false);
 
       toast.current.show({
         severity: 'error',
         summary: 'Error',
-        detail: error.response?.data?.message || 'Failed to send message',
+        detail: 'An unexpected error occurred while sending message',
         life: 3000
       });
     }
