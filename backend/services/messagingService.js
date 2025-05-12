@@ -24,6 +24,13 @@ const twilioWhatsAppNumber = process.env.TWILIO_WHATSAPP_NUMBER;
 // Initialize Twilio client
 let twilioClient;
 try {
+  // Debug logging
+  console.log('Twilio package available:', !!twilio);
+  console.log('TWILIO_ACCOUNT_SID available:', !!accountSid);
+  console.log('TWILIO_AUTH_TOKEN available:', !!authToken);
+  console.log('TWILIO_PHONE_NUMBER available:', !!twilioPhoneNumber);
+  console.log('TWILIO_WHATSAPP_NUMBER available:', !!twilioWhatsAppNumber);
+
   if (twilio && accountSid && authToken) {
     twilioClient = twilio(accountSid, authToken);
     console.log('Twilio client initialized successfully');
