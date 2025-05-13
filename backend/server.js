@@ -44,7 +44,7 @@ app.get('/', (req, res) => {
 async function startServer() {
   try {
     // Get MongoDB URI from environment variables or use default
-    const mongoUri = process.env.MONGO_URI || 'mongodb://localhost:27017/mes_sms';
+    const mongoUri = process.env.MONGO_URI || 'mongodb+srv://meschaitanya:admin@meschaitanya.3zzdbhu.mongodb.net/mes_sms?retryWrites=true&w=majority&appName=meschaitanya';
 
     // Connect to MongoDB with improved options
     await mongoose.connect(mongoUri, {
