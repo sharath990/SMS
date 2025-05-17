@@ -5,8 +5,8 @@ import AuthContext from '../context/AuthContext';
 /**
  * AdminDashboard component
  *
- * This is the main dashboard page for administrators.
- * It provides a simple welcome message.
+ * This is the main dashboard page for all users.
+ * It provides a simple welcome message and navigation instructions.
  */
 const AdminDashboard = () => {
   const { user } = useContext(AuthContext);
@@ -31,8 +31,17 @@ const AdminDashboard = () => {
 
         <div className="mb-4">
           <p className="text-lg text-700 line-height-3">
-            Welcome to the MES Chaitanya SMS administration dashboard. Use the sidebar menu to navigate to different sections of the application.
+            Welcome to the MES Chaitanya SMS dashboard. Use the sidebar menu to navigate to different sections of the application.
           </p>
+          {user?.isAdmin ? (
+            <p className="text-md text-blue-600 line-height-3">
+              As an administrator, you have access to all features including User Management.
+            </p>
+          ) : (
+            <p className="text-md text-blue-600 line-height-3">
+              You have access to all features except User Management, which is restricted to administrators.
+            </p>
+          )}
         </div>
       </div>
     </div>

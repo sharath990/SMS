@@ -172,6 +172,29 @@ export const deleteUser = async (token, userId) => {
   }
 };
 
+/**
+ * Toggle user active status
+ * @param {string} token - JWT authentication token
+ * @param {string} userId - ID of the user to toggle status
+ * @returns {Promise<object>} Response with updated user data
+ */
+export const toggleUserStatus = async (token, userId) => {
+  try {
+    const config = getAuthConfig(token);
+    const response = await axios.patch(`${API_BASE_URL}/auth/users/${userId}/toggle-status`, {}, config);
+    return {
+      success: true,
+      data: response.data
+    };
+  } catch (error) {
+    const errorData = handleApiError(error);
+    return {
+      success: false,
+      error: errorData
+    };
+  }
+};
+
 export default {
   login,
   register,
@@ -179,5 +202,6 @@ export default {
   getAllUsers,
   createUser,
   updateUser,
-  deleteUser
+  deleteUser,
+  toggleUserStatus
 };

@@ -32,6 +32,12 @@ router.post('/login', async (req, res) => {
       return res.status(401).json({ message: 'Invalid credentials' });
     }
 
+    // Check if user account is active
+    if (!user.isActive) {
+      console.log('User account is inactive:', user.username);
+      return res.status(401).json({ message: 'Your account has been deactivated. Please contact an administrator.' });
+    }
+
     // Generate JWT token
     const token = jwt.sign(
       { id: user._id },
@@ -49,7 +55,8 @@ router.post('/login', async (req, res) => {
         lastName: user.lastName,
         email: user.email,
         mobileNumber: user.mobileNumber,
-        isAdmin: user.isAdmin
+        isAdmin: user.isAdmin,
+        isActive: user.isActive
       }
     });
   } catch (error) {
@@ -72,7 +79,8 @@ router.get('/user', protect, async (req, res) => {
         lastName: req.user.lastName,
         email: req.user.email,
         mobileNumber: req.user.mobileNumber,
-        isAdmin: req.user.isAdmin
+        isAdmin: req.user.isAdmin,
+        isActive: req.user.isActive
       }
     });
   } catch (error) {
@@ -84,7 +92,7 @@ router.get('/user', protect, async (req, res) => {
 // @route   POST /api/auth/users
 // @desc    Create a new user (Admin only)
 // @access  Private/Admin
-router.post('/users', protect, async (req, res) => {
+router.post('/users', protect, admin, async (req, res) => {
   try {
     console.log('Creating user - Request body:', req.body);
     const { username, firstName, lastName, email, mobileNumber, password } = req.body;
@@ -102,11 +110,7 @@ router.post('/users', protect, async (req, res) => {
       return res.status(400).json({ message: 'Please enter a valid 10-digit mobile number' });
     }
 
-    // Check if the current user is an admin
-    if (!req.user.isAdmin) {
-      console.log('User is not an admin:', req.user);
-      return res.status(403).json({ message: 'Not authorized as an admin' });
-    }
+    // Admin check is handled by the admin middleware
 
     // Check if user already exists
     let user = await User.findOne({ email });
@@ -129,8 +133,8 @@ router.post('/users', protect, async (req, res) => {
       lastName,
       email,
       mobileNumber,
-      password
-      // isAdmin is true by default now
+      password,
+      isAdmin: req.body.isAdmin || false // Set isAdmin based on request or default to false
     });
 
     console.log('Saving new user:', { username, firstName, lastName, email, mobileNumber });
@@ -146,7 +150,8 @@ router.post('/users', protect, async (req, res) => {
         lastName: user.lastName,
         email: user.email,
         mobileNumber: user.mobileNumber,
-        isAdmin: user.isAdmin
+        isAdmin: user.isAdmin,
+        isActive: user.isActive
       }
     });
   } catch (error) {
@@ -165,12 +170,8 @@ router.post('/users', protect, async (req, res) => {
 // @route   GET /api/auth/users
 // @desc    Get all users (Admin only)
 // @access  Private/Admin
-router.get('/users', protect, async (req, res) => {
+router.get('/users', protect, admin, async (req, res) => {
   try {
-    // Check if the current user is an admin
-    if (!req.user.isAdmin) {
-      return res.status(403).json({ message: 'Not authorized as an admin' });
-    }
 
     const users = await User.find({}).select('-password');
 
@@ -187,17 +188,11 @@ router.get('/users', protect, async (req, res) => {
 // @route   PUT /api/auth/users/:id
 // @desc    Update a user (Admin only)
 // @access  Private/Admin
-router.put('/users/:id', protect, async (req, res) => {
+router.put('/users/:id', protect, admin, async (req, res) => {
   try {
     console.log('Updating user - Request body:', req.body);
     const { username, firstName, lastName, email, mobileNumber, password } = req.body;
     const userId = req.params.id;
-
-    // Check if the current user is an admin
-    if (!req.user.isAdmin) {
-      console.log('User is not an admin:', req.user);
-      return res.status(403).json({ message: 'Not authorized as an admin' });
-    }
 
     // Find the user to update
     let user = await User.findById(userId);
@@ -243,6 +238,16 @@ router.put('/users/:id', protect, async (req, res) => {
     user.email = email;
     user.mobileNumber = mobileNumber;
 
+    // Update isAdmin status if provided
+    if (req.body.isAdmin !== undefined) {
+      user.isAdmin = req.body.isAdmin;
+    }
+
+    // Update isActive status if provided
+    if (req.body.isActive !== undefined) {
+      user.isActive = req.body.isActive;
+    }
+
     // Only update password if provided
     if (password && password.length >= 6) {
       user.password = password;
@@ -261,7 +266,8 @@ router.put('/users/:id', protect, async (req, res) => {
         lastName: user.lastName,
         email: user.email,
         mobileNumber: user.mobileNumber,
-        isAdmin: user.isAdmin
+        isAdmin: user.isAdmin,
+        isActive: user.isActive
       }
     });
   } catch (error) {
@@ -280,14 +286,9 @@ router.put('/users/:id', protect, async (req, res) => {
 // @route   DELETE /api/auth/users/:id
 // @desc    Delete a user (Admin only)
 // @access  Private/Admin
-router.delete('/users/:id', protect, async (req, res) => {
+router.delete('/users/:id', protect, admin, async (req, res) => {
   try {
     const userId = req.params.id;
-
-    // Check if the current user is an admin
-    if (!req.user.isAdmin) {
-      return res.status(403).json({ message: 'Not authorized as an admin' });
-    }
 
     // Prevent self-deletion
     if (userId === req.user._id.toString()) {
@@ -310,6 +311,49 @@ router.delete('/users/:id', protect, async (req, res) => {
     });
   } catch (error) {
     console.error('Error deleting user:', error);
+    res.status(500).json({ message: 'Server error: ' + error.message });
+  }
+});
+
+// @route   PATCH /api/auth/users/:id/toggle-status
+// @desc    Toggle user active status (Admin only)
+// @access  Private/Admin
+router.patch('/users/:id/toggle-status', protect, admin, async (req, res) => {
+  try {
+    const userId = req.params.id;
+
+    // Prevent self-deactivation
+    if (userId === req.user._id.toString()) {
+      return res.status(400).json({ message: 'You cannot change your own account status' });
+    }
+
+    // Find the user
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    // Toggle the isActive status
+    user.isActive = !user.isActive;
+
+    await user.save();
+
+    res.json({
+      success: true,
+      user: {
+        id: user._id,
+        username: user.username,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        email: user.email,
+        mobileNumber: user.mobileNumber,
+        isAdmin: user.isAdmin,
+        isActive: user.isActive
+      },
+      message: `User ${user.isActive ? 'activated' : 'deactivated'} successfully`
+    });
+  } catch (error) {
+    console.error('Error toggling user status:', error);
     res.status(500).json({ message: 'Server error: ' + error.message });
   }
 });

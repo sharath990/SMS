@@ -36,14 +36,10 @@ const Login = () => {
     console.log('user:', user);
     console.log('error:', error);
 
-    // If user is already authenticated, redirect based on role
+    // If user is already authenticated, redirect to admin dashboard
     if (isAuthenticated && user) {
       console.log('User is authenticated, redirecting...');
-      if (user.isAdmin) {
-        navigate('/admin');
-      } else {
-        navigate('/dashboard');
-      }
+      navigate('/admin');
     }
 
     // Set form error if there's an authentication error
@@ -79,15 +75,20 @@ const Login = () => {
         console.log('Login successful, showing toast');
         showToast('success', 'Login Successful', 'Welcome back!');
 
-        // Redirect based on user role
-        console.log('Redirecting user based on role:', result.user);
-        if (result.user && result.user.isAdmin) {
-          navigate('/admin');
-        } else {
-          navigate('/dashboard');
-        }
+        // Redirect all users to admin dashboard
+        console.log('Redirecting user to admin dashboard:', result.user);
+        navigate('/admin');
       } else {
         console.log('Login failed:', result.error);
+
+        // Check if the error message indicates an inactive account
+        if (result.error && result.error.includes('deactivated')) {
+          setFormError(result.error);
+          showToast('error', 'Account Deactivated', 'Your account has been deactivated. Please contact an administrator.', 5000);
+        } else {
+          setFormError(result.error || 'Invalid credentials');
+          showToast('error', 'Login Failed', 'Invalid email or password', 3000);
+        }
       }
     } catch (error) {
       console.error('Unexpected error during login:', error);

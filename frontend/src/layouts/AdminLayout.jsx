@@ -88,12 +88,15 @@ const AdminLayout = () => {
       path: '/admin',
       active: isActive('/admin')
     },
-    {
-      label: 'User Management',
-      icon: 'pi pi-fw pi-users',
-      path: '/admin/users',
-      active: isActive('/admin/users')
-    }
+    // Only show User Management for admin users
+    ...(user?.isAdmin ? [
+      {
+        label: 'User Management',
+        icon: 'pi pi-fw pi-users',
+        path: '/admin/users',
+        active: isActive('/admin/users')
+      }
+    ] : [])
   ];
 
   // Menu items for the sidebar - ACADEMIC section

@@ -22,7 +22,7 @@ import AdminRoute from '../components/AdminRoute';
 
 /**
  * Application routes configuration
- * 
+ *
  * This file defines all the routes for the application, organized by section.
  * Each route has a path, element, and optional children for nested routes.
  */
@@ -39,13 +39,13 @@ const routes = [
       { path: '', element: <Login /> }
     ]
   },
-  
-  // User dashboard route
+
+  // Redirect /dashboard to /admin
   {
     path: '/dashboard',
-    element: <ProtectedRoute><Dashboard /></ProtectedRoute>,
+    element: <Navigate to="/admin" replace />,
   },
-  
+
   // Admin routes
   {
     path: '/admin',
@@ -53,23 +53,23 @@ const routes = [
     children: [
       // Default admin route
       { path: '', element: <AdminDashboard /> },
-      
+
       // Administration section
       { path: 'users', element: <UserManagement /> },
-      
+
       // Academic section
       { path: 'students', element: <StudentManagement /> },
       { path: 'classes', element: <ClassManagement /> },
       { path: 'batches', element: <BatchManagement /> },
       { path: 'subjects', element: <SubjectManagement /> },
       { path: 'class-timings', element: <ClassTimingManagement /> },
-      
+
       // Messaging section
       { path: 'messages', element: <MessageSending /> },
       { path: 'message-templates', element: <MessageTemplateManagement /> },
     ]
   },
-  
+
   // 404 Not Found route
   {
     path: '*',

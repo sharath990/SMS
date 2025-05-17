@@ -18,8 +18,9 @@ const AdminRoute = ({ children }) => {
     return <Navigate to="/login" />;
   }
 
-  if (!user.isAdmin) {
-    return <Navigate to="/dashboard" />;
+  // If the user is not an admin and trying to access the User Management page, redirect to dashboard
+  if (!user.isAdmin && window.location.pathname.includes('/admin/users')) {
+    return <Navigate to="/admin" />;
   }
 
   return children;

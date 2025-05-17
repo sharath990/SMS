@@ -41,7 +41,11 @@ const userSchema = new mongoose.Schema({
   },
   isAdmin: {
     type: Boolean,
-    default: true // All users are admins by default now
+    default: false // Regular users by default, only explicitly set admins have admin privileges
+  },
+  isActive: {
+    type: Boolean,
+    default: true // Users are active by default
   },
   createdAt: {
     type: Date,

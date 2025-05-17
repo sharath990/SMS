@@ -9,6 +9,8 @@ import { DataTable } from 'primereact/datatable';
 import { Column } from 'primereact/column';
 import { BreadCrumb } from 'primereact/breadcrumb';
 import { ConfirmDialog, confirmDialog } from 'primereact/confirmdialog';
+import { Dropdown } from 'primereact/dropdown';
+import { Tag } from 'primereact/tag';
 import AuthContext from '../context/AuthContext';
 import { authService } from '../services';
 
@@ -37,8 +39,14 @@ const UserManagement = () => {
     email: '',
     mobileNumber: '',
     password: '',
-    isAdmin: true // All users are admins by default
+    isAdmin: false // Regular users by default
   });
+
+  // Role options for dropdown
+  const roleOptions = [
+    { label: 'Admin', value: true },
+    { label: 'User', value: false }
+  ];
   const [editUser, setEditUser] = useState({
     id: '',
     username: '',
@@ -47,7 +55,8 @@ const UserManagement = () => {
     email: '',
     mobileNumber: '',
     password: '',
-    isAdmin: true
+    isAdmin: true,
+    isActive: true
   });
   const [formError, setFormError] = useState('');
 
@@ -153,7 +162,7 @@ const UserManagement = () => {
           email: '',
           mobileNumber: '',
           password: '',
-          isAdmin: true
+          isAdmin: false
         });
         setFormError('');
 
@@ -190,7 +199,8 @@ const UserManagement = () => {
       email: rowData.email,
       mobileNumber: rowData.mobileNumber,
       password: '', // Password field is empty when editing
-      isAdmin: rowData.isAdmin
+      isAdmin: rowData.isAdmin,
+      isActive: rowData.isActive
     });
     setFormError('');
     setShowEditUserDialog(true);
@@ -227,7 +237,8 @@ const UserManagement = () => {
           email: '',
           mobileNumber: '',
           password: '',
-          isAdmin: true
+          isAdmin: true,
+          isActive: true
         });
         setFormError('');
 
@@ -252,6 +263,34 @@ const UserManagement = () => {
       setLoading(false);
       setFormError('An unexpected error occurred');
       showToast('error', 'Update Failed', 'An unexpected error occurred');
+    }
+  };
+
+  // Handle toggle user status
+  const handleToggleStatus = async (rowData) => {
+    try {
+      setLoading(true);
+
+      const response = await authService.toggleUserStatus(token, rowData._id);
+
+      if (response.success) {
+        showToast(
+          'success',
+          rowData.isActive ? 'User Deactivated' : 'User Activated',
+          response.data.message || `User ${rowData.username} has been ${rowData.isActive ? 'deactivated' : 'activated'} successfully`
+        );
+
+        // Refresh users list
+        fetchUsers();
+      } else {
+        showToast('error', 'Status Change Failed', response.error.message || 'Failed to change user status');
+      }
+
+      setLoading(false);
+    } catch (error) {
+      console.error('Unexpected error toggling user status:', error);
+      setLoading(false);
+      showToast('error', 'Status Change Failed', 'An unexpected error occurred');
     }
   };
 
@@ -342,6 +381,27 @@ const UserManagement = () => {
           <Column field="email" header="Email" sortable />
           <Column field="mobileNumber" header="Mobile Number" sortable />
           <Column
+            field="isAdmin"
+            header="Role"
+            body={(rowData) => (
+              <Tag
+                value={rowData.isAdmin ? 'Admin' : 'User'}
+                severity={rowData.isAdmin ? 'success' : 'info'}
+              />
+            )}
+            sortable
+          />
+          <Column field="isActive"
+            header="Status"
+            body={(rowData) => (
+              <Tag
+                value={rowData.isActive ? 'Active' : 'Inactive'}
+                severity={rowData.isActive ? 'success' : 'danger'}
+              />
+            )}
+            sortable
+          />
+          <Column
             field="createdAt"
             header="Created At"
             body={(rowData) => rowData.createdAt ? new Date(rowData.createdAt).toLocaleDateString() : 'N/A'}
@@ -357,6 +417,14 @@ const UserManagement = () => {
                   style={{ width: '2.5rem', height: '2.5rem' }}
                   onClick={() => handleEditUser(rowData)}
                   tooltip="Edit User"
+                  tooltipOptions={{ position: 'top' }}
+                />
+                <Button
+                  icon={rowData.isActive ? "pi pi-ban" : "pi pi-check"}
+                  className={`p-button-rounded p-button-outlined ${rowData.isActive ? 'p-button-warning' : 'p-button-success'}`}
+                  style={{ width: '2.5rem', height: '2.5rem' }}
+                  onClick={() => handleToggleStatus(rowData)}
+                  tooltip={rowData.isActive ? "Deactivate User" : "Activate User"}
                   tooltipOptions={{ position: 'top' }}
                 />
                 <Button
@@ -487,6 +555,19 @@ const UserManagement = () => {
             />
             <small className="text-secondary">Password must be at least 6 characters long</small>
           </div>
+
+          <div className="field">
+            <label htmlFor="role" className="font-medium">Role*</label>
+            <Dropdown
+              id="role"
+              value={newUser.isAdmin}
+              options={roleOptions}
+              onChange={(e) => setNewUser({...newUser, isAdmin: e.value})}
+              className="p-inputtext-lg w-full"
+              placeholder="Select a role"
+            />
+            <small className="text-secondary">Select the user's role (Admin or User)</small>
+          </div>
         </div>
       </Dialog>
 
@@ -603,6 +684,35 @@ const UserManagement = () => {
               inputClassName="w-full"
             />
             <small className="text-secondary">Leave empty to keep current password, or enter a new password (min 6 characters)</small>
+          </div>
+
+          <div className="field">
+            <label htmlFor="edit-role" className="font-medium">Role*</label>
+            <Dropdown
+              id="edit-role"
+              value={editUser.isAdmin}
+              options={roleOptions}
+              onChange={(e) => setEditUser({...editUser, isAdmin: e.value})}
+              className="p-inputtext-lg w-full"
+              placeholder="Select a role"
+            />
+            <small className="text-secondary">Select the user's role (Admin or User)</small>
+          </div>
+
+          <div className="field">
+            <label htmlFor="edit-status" className="font-medium">Status*</label>
+            <Dropdown
+              id="edit-status"
+              value={editUser.isActive}
+              options={[
+                { label: 'Active', value: true },
+                { label: 'Inactive', value: false }
+              ]}
+              onChange={(e) => setEditUser({...editUser, isActive: e.value})}
+              className="p-inputtext-lg w-full"
+              placeholder="Select a status"
+            />
+            <small className="text-secondary">Set the user's account status</small>
           </div>
         </div>
       </Dialog>
