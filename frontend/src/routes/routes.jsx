@@ -10,6 +10,7 @@ import ClassTimingManagement from '../pages/ClassTimingManagement';
 import MessageTemplateManagement from '../pages/MessageTemplateManagement';
 import MessageSending from '../pages/MessageSending';
 import UserManagement from '../pages/UserManagement';
+import ResetPassword from '../pages/ResetPassword';
 import NotFound from '../pages/NotFound';
 
 // Layout components
@@ -37,6 +38,13 @@ const routes = [
     element: <AuthLayout />,
     children: [
       { path: '', element: <Login /> }
+    ]
+  },
+  {
+    path: '/reset-password/:token',
+    element: <AuthLayout />,
+    children: [
+      { path: '', element: <ResetPassword /> }
     ]
   },
 

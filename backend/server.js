@@ -13,6 +13,7 @@ const messageTemplateRoutes = require('./routes/messageTemplates');
 const messagingRoutes = require('./routes/messaging');
 const subjectRoutes = require('./routes/subjects');
 const classTimingRoutes = require('./routes/classTimings');
+const passwordResetRoutes = require('./routes/passwordReset');
 
 // Load environment variables
 dotenv.config();
@@ -34,6 +35,7 @@ app.use('/api/message-templates', messageTemplateRoutes);
 app.use('/api/messaging', messagingRoutes);
 app.use('/api/subjects', subjectRoutes);
 app.use('/api/class-timings', classTimingRoutes);
+app.use('/api/password-reset', passwordResetRoutes);
 
 // Home route
 app.get('/', (req, res) => {

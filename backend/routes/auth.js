@@ -2,6 +2,7 @@ const express = require('express');
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 const { protect, admin } = require('../middleware/auth');
+const { sendPasswordSetupEmail } = require('../utils/emailService');
 const router = express.Router();
 
 // @route   POST /api/auth/login
@@ -141,6 +142,23 @@ router.post('/users', protect, admin, async (req, res) => {
     await user.save();
     console.log('User saved successfully with ID:', user._id);
 
+    // Send password setup email
+    try {
+      console.log('Attempting to send password setup email to user:', user.email);
+      const emailSent = await sendPasswordSetupEmail(user);
+      console.log('Password setup email sent result:', emailSent);
+
+      if (!emailSent) {
+        console.error('Failed to send password setup email, but continuing with user creation');
+      }
+    } catch (emailError) {
+      console.error('Exception when sending password setup email:', emailError);
+      if (emailError.stack) {
+        console.error('Stack trace:', emailError.stack);
+      }
+      // Continue with the response even if email fails
+    }
+
     res.status(201).json({
       success: true,
       user: {
@@ -152,7 +170,8 @@ router.post('/users', protect, admin, async (req, res) => {
         mobileNumber: user.mobileNumber,
         isAdmin: user.isAdmin,
         isActive: user.isActive
-      }
+      },
+      message: 'User created successfully. A password setup email has been sent to the user.'
     });
   } catch (error) {
     console.error('Error creating user:', error);
