@@ -31,7 +31,8 @@ const AdminDashboard = () => {
 
         <div className="mb-4">
           <p className="text-lg text-700 line-height-3">
-            Welcome to the MES Chaitanya SMS dashboard. Use the sidebar menu to navigate to different sections of the application.
+            Welcome to the ChaitanyaConnect dashboard.<br />
+            Use the sidebar menu to navigate to different sections of the application.
           </p>
           {user?.isAdmin ? (
             <p className="text-md text-blue-600 line-height-3">

@@ -160,9 +160,9 @@ const AdminLayout = () => {
       {/* Modern Top Navigation Bar */}
       <div className="layout-topbar shadow-2">
         <div className="layout-topbar-left">
-          <Link to="/admin" className="layout-topbar-logo flex align-items-center" style={{ textDecoration: 'none' }}>
-            <i className="pi pi-bolt text-primary mr-2" style={{ fontSize: '2rem' }}></i>
-            <span className="font-bold text-xl text-900">MES Chaitanya SMS</span>
+          <Link to="/admin" className="layout-topbar-logo flex flex-column align-items-start" style={{ textDecoration: 'none' }}>
+            <span className="font-bold text-xl text-900">ChaitanyaConnect</span>
+            <span className="text-xs text-500">Parent Messaging Platform</span>
           </Link>
           <Button
             icon="pi pi-bars"
@@ -210,9 +210,9 @@ const AdminLayout = () => {
         <div className="layout-sidebar-wrapper">
           {/* Sidebar Header */}
           <div className="layout-sidebar-header p-3 border-bottom-1 border-300 flex align-items-center justify-content-between">
-            <div className="flex align-items-center">
-              <i className="pi pi-bolt text-primary mr-2" style={{ fontSize: '1.5rem' }}></i>
-              <span className="font-bold text-xl text-900">MES Chaitanya SMS</span>
+            <div className="flex flex-column align-items-start">
+              <span className="font-bold text-xl text-900">ChaitanyaConnect</span>
+              <span className="text-xs text-500">Parent Messaging Platform</span>
             </div>
             <Button
               icon="pi pi-times"

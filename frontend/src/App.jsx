@@ -4,6 +4,7 @@ import ProtectedRoute from './components/ProtectedRoute';
 import AdminRoute from './components/AdminRoute';
 import routes from './routes/routes.jsx';
 import { ConfirmDialog } from 'primereact/confirmdialog';
+import { useEffect } from 'react';
 
 // PrimeReact imports
 import 'primereact/resources/themes/lara-light-blue/theme.css'; // modern theme
@@ -19,6 +20,9 @@ const AppRoutes = () => {
 };
 
 function App() {
+  useEffect(() => {
+    document.title = 'ChaitanyaConnect | Parent Messaging Platform';
+  }, []);
   return (
     <AuthProvider>
       <Router>

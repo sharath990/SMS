@@ -7,6 +7,8 @@ import { Button } from 'primereact/button';
 import { Message } from 'primereact/message';
 import { Toast } from 'primereact/toast';
 import AuthContext from '../context/AuthContext';
+import mesCollegeBg from '../assets/image/mes-college.jpg';
+import chaitanyaLogo from '../assets/image/chaitanya-logo.png';
 
 const Login = () => {
   const [email, setEmail] = useState('');
@@ -96,57 +98,112 @@ const Login = () => {
   };
 
   return (
-    <div className="flex justify-content-center align-items-center min-h-screen p-4">
-      <Toast ref={toast} position="top-right" />
-      <div className="w-full max-w-30rem">
-        <Card title="Login" className="shadow-4">
-          <form onSubmit={handleSubmit} className="p-fluid">
-            {formError && (
-              <Message severity="error" text={formError} className="mb-3 w-full" />
-            )}
-
-            <div className="field mb-4">
-              <label htmlFor="email" className="font-bold block mb-2">Email</label>
-              <InputText
-                id="email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="w-full p-inputtext-sm"
-                placeholder="Enter your email"
-              />
-            </div>
-
-            <div className="field mb-4">
-              <label htmlFor="password" className="font-bold block mb-2">Password</label>
-              <Password
-                id="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                toggleMask
-                feedback={false}
-                className="w-full p-inputtext-sm"
-                inputClassName="w-full"
-                placeholder="Enter your password"
-              />
-            </div>
-
-            <Button
-              type="submit"
-              label="Login"
-              icon="pi pi-sign-in"
-              className="w-full p-button-primary p-button-raised"
-              style={{ padding: '0.5rem 1rem' }}
+    <div className="flex min-h-screen flex-row" style={{ width: '100vw' }}>
+      {/* Left: Background Image (70%) */}
+      <div
+        className="hidden md:block position-relative"
+        style={{
+          flexBasis: '75%',
+          backgroundImage: `url(${mesCollegeBg})`,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          backgroundRepeat: 'no-repeat',
+          minHeight: '100vh',
+          position: 'relative',
+        }}
+      >
+        {/* Overlayed Welcome Text */}
+        <div style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          width: '100%',
+          height: '100%',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 2,
+          pointerEvents: 'none',
+        }}>
+          <h1 style={{
+            color: '#fff',
+            fontSize: '2.5rem',
+            fontWeight: 'bold',
+            textAlign: 'center',
+            textShadow: '0 2px 8px rgba(0,0,0,0.5)',
+            marginBottom: '1rem',
+            letterSpacing: '1px',
+          }}>
+            Welcome to Chaitanya Pre University College
+          </h1>
+          <div style={{
+            color: '#fff',
+            fontSize: '1.2rem',
+            textAlign: 'center',
+            textShadow: '0 2px 8px rgba(0,0,0,0.5)',
+            fontStyle: 'italic',
+            letterSpacing: '1px',
+          }}>
+            "सा विद्या या विमुक्तये"
+          </div>
+        </div>
+        
+        
+        <div style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          width: '100%',
+          height: '100%',
+          background: 'rgba(0,0,0,0.15)',
+          pointerEvents: 'none',
+        }} />
+      </div>
+      {/* Right: Login Form (30%) */}
+      <div className="flex flex-column justify-content-center align-items-center p-6" style={{ flexBasis: '25%', background: 'rgba(255,255,255,0.95)', minHeight: '100vh' }}>
+        <Toast ref={toast} position="top-right" />
+        <div className="mb-6 text-center">
+          <img src={chaitanyaLogo} alt="Chaitanya Logo" style={{ width: '80px', margin: '0 auto 1rem auto', display: 'block' }} />
+          <span className="font-bold text-3xl text-900 block">ChaitanyaConnect</span>
+          <span className="text-xs text-500 block">Parent Messaging Platform</span>
+        </div>
+        <form onSubmit={handleSubmit} className="p-fluid w-full" style={{ maxWidth: 400 }}>
+          {formError && (
+            <Message severity="error" text={formError} className="mb-3 w-full" />
+          )}
+          <div className="field mb-4">
+            <label htmlFor="email" className="font-bold block mb-2">Email</label>
+            <InputText
+              id="email"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="w-full p-inputtext-sm"
+              placeholder="Enter your email"
             />
-
-            <div className="mt-4 text-center">
-              <p>
-                Don't have an account?{' '}
-                <a href="/register" className="text-primary font-medium">Register</a>
-              </p>
-            </div>
-          </form>
-        </Card>
+          </div>
+          <div className="field mb-4">
+            <label htmlFor="password" className="font-bold block mb-2">Password</label>
+            <Password
+              id="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              toggleMask
+              feedback={false}
+              className="w-full p-inputtext-sm"
+              inputClassName="w-full"
+              placeholder="Enter your password"
+            />
+          </div>
+          <Button
+            type="submit"
+            label="Login"
+            icon="pi pi-sign-in"
+            className="w-full p-button-primary p-button-raised"
+            style={{ padding: '0.5rem 1rem' }}
+          />
+        </form>
       </div>
     </div>
   );
