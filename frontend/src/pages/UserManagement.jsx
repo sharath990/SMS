@@ -8,7 +8,7 @@ import { Message } from 'primereact/message';
 import { DataTable } from 'primereact/datatable';
 import { Column } from 'primereact/column';
 import { BreadCrumb } from 'primereact/breadcrumb';
-import { ConfirmDialog, confirmDialog } from 'primereact/confirmdialog';
+import { confirmDialog } from 'primereact/confirmdialog';
 import { Dropdown } from 'primereact/dropdown';
 import { Tag } from 'primereact/tag';
 import AuthContext from '../context/AuthContext';
@@ -350,7 +350,6 @@ const UserManagement = () => {
   return (
     <div className="user-management-container">
       <Toast ref={toast} />
-      <ConfirmDialog />
 
       <BreadCrumb model={breadcrumbItems} home={homeBreadcrumbItem} className="mb-4 p-2 border-1 border-round surface-border" />
 

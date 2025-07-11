@@ -3,6 +3,7 @@ import { AuthProvider } from './context/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import AdminRoute from './components/AdminRoute';
 import routes from './routes/routes.jsx';
+import { ConfirmDialog } from 'primereact/confirmdialog';
 
 // PrimeReact imports
 import 'primereact/resources/themes/lara-light-blue/theme.css'; // modern theme
@@ -21,6 +22,7 @@ function App() {
   return (
     <AuthProvider>
       <Router>
+        <ConfirmDialog />
         <div className="app-container">
           <AppRoutes />
         </div>

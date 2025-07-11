@@ -18,7 +18,10 @@ const protect = async (req, res, next) => {
 
   try {
     // Verify token
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'mes_chaitanya_sms_secret_key_change_in_production');
+    if (!process.env.JWT_SECRET) {
+      throw new Error('JWT_SECRET environment variable is required.');
+    }
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
     // Add user to request object
     req.user = await User.findById(decoded.id).select('-password');

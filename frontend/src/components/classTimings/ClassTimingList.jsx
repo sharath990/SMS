@@ -5,7 +5,7 @@ import { Button } from 'primereact/button';
 import { InputText } from 'primereact/inputtext';
 import { Dropdown } from 'primereact/dropdown';
 import { Toast } from 'primereact/toast';
-import { ConfirmDialog, confirmDialog } from 'primereact/confirmdialog';
+import { confirmDialog } from 'primereact/confirmdialog';
 import { classTimingService } from '../../services';
 
 const ClassTimingList = ({ token, onEdit, onView, refreshList }) => {
@@ -325,7 +325,6 @@ const ClassTimingList = ({ token, onEdit, onView, refreshList }) => {
   return (
     <div>
       <Toast ref={toast} />
-      <ConfirmDialog />
 
       <DataTable
         value={classTimings}

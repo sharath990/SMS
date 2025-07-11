@@ -22,7 +22,16 @@ dotenv.config();
 const app = express();
 
 // Middleware
-app.use(cors());
+// CORS: In production, restrict origin to your frontend domain
+app.use(cors({
+  origin: process.env.CORS_ORIGIN , // Set CORS_ORIGIN in .env for production
+  credentials: true
+}));
+
+// Security: Add helmet for secure HTTP headers in production
+const helmet = require('helmet');
+app.use(helmet());
+
 app.use(express.json());
 
 // Routes
@@ -45,8 +54,11 @@ app.get('/', (req, res) => {
 // Connect to MongoDB and start server
 async function startServer() {
   try {
-    // Get MongoDB URI from environment variables or use default
-    const mongoUri = process.env.MONGO_URI || 'mongodb+srv://meschaitanya:admin@meschaitanya.3zzdbhu.mongodb.net/mes_sms?retryWrites=true&w=majority&appName=meschaitanya';
+    // Get MongoDB URI from environment variables ONLY
+    const mongoUri = process.env.MONGO_URI;
+    if (!mongoUri) {
+      throw new Error('MONGO_URI environment variable is required.');
+    }
 
     // Connect to MongoDB with improved options
     await mongoose.connect(mongoUri, {
@@ -61,21 +73,6 @@ async function startServer() {
     app.listen(PORT, () => {
       console.log(`Server running on port ${PORT}`);
     });
-
-    // Run database seeders
-    try {
-      // Check if SEED_DATABASE environment variable is set to true
-      if (process.env.SEED_DATABASE === 'true') {
-        console.log('🌱 Database seeding enabled');
-        const { runSeeders } = require('./seeders/index');
-        await runSeeders();
-      } else {
-        console.log('Database seeding disabled. Set SEED_DATABASE=true in .env to enable.');
-      }
-    } catch (seedError) {
-      console.error('Error running database seeders:', seedError);
-      // Continue server operation even if seeding fails
-    }
   } catch (error) {
     console.error('Error starting server:', error);
     process.exit(1);

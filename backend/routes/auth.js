@@ -40,9 +40,12 @@ router.post('/login', async (req, res) => {
     }
 
     // Generate JWT token
+    if (!process.env.JWT_SECRET) {
+      throw new Error('JWT_SECRET environment variable is required.');
+    }
     const token = jwt.sign(
       { id: user._id },
-      process.env.JWT_SECRET || 'mes_chaitanya_sms_secret_key_change_in_production',
+      process.env.JWT_SECRET,
       { expiresIn: process.env.JWT_EXPIRE || '24h' }
     );
 

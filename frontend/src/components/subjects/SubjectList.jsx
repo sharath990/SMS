@@ -5,7 +5,7 @@ import { Button } from 'primereact/button';
 import { InputText } from 'primereact/inputtext';
 import { Dropdown } from 'primereact/dropdown';
 import { Toast } from 'primereact/toast';
-import { ConfirmDialog, confirmDialog } from 'primereact/confirmdialog';
+import { confirmDialog } from 'primereact/confirmdialog';
 import { subjectService } from '../../services';
 
 const SubjectList = ({ token, onEdit, refreshList }) => {
@@ -336,7 +336,6 @@ const SubjectList = ({ token, onEdit, refreshList }) => {
   return (
     <div>
       <Toast ref={toast} />
-      <ConfirmDialog />
 
       <DataTable
         value={subjects}

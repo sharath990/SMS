@@ -5,7 +5,7 @@ import { Button } from 'primereact/button';
 import { InputText } from 'primereact/inputtext';
 import { Dropdown } from 'primereact/dropdown';
 import { Toast } from 'primereact/toast';
-import { ConfirmDialog, confirmDialog } from 'primereact/confirmdialog';
+import { confirmDialog } from 'primereact/confirmdialog';
 import { Tag } from 'primereact/tag';
 import { messageTemplateService } from '../../services';
 
@@ -376,7 +376,6 @@ const MessageTemplateList = ({ token, onEdit, refreshList }) => {
   return (
     <div>
       <Toast ref={toast} position="top-right" />
-      <ConfirmDialog />
 
       <DataTable
         value={templates}

@@ -11,7 +11,8 @@ const User = require('./models/User');
 async function resetAdminPassword() {
   try {
     // Connect to MongoDB
-    const mongoUri = process.env.MONGO_URI || 'mongodb://localhost:27017/mes_sms';
+    const mongoUri = process.env.MONGO_URI;
+    if (!mongoUri) throw new Error('MONGO_URI environment variable is required.');
     await mongoose.connect(mongoUri, {
       serverSelectionTimeoutMS: 5000,
       maxPoolSize: 10

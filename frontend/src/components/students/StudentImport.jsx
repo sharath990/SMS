@@ -9,6 +9,7 @@ import { Column } from 'primereact/column';
 import { Tag } from 'primereact/tag';
 import { studentService } from '../../services';
 import axios from 'axios'; // Still needed for template download
+import { API_BASE_URL } from '../../config/api.config';
 import '../../styles/StudentImport.css';
 
 const StudentImport = ({ visible, onHide, token, onImportComplete }) => {
@@ -137,7 +138,7 @@ const StudentImport = ({ visible, onHide, token, onImportComplete }) => {
         responseType: 'blob'
       };
 
-      const response = await axios.get(`http://localhost:5000/api/import/template?format=${format}`, config);
+      const response = await axios.get(`${API_BASE_URL}/import/template?format=${format}`, config);
 
       // Get the correct file extension based on format
       const fileExtension = format === 'excel' ? 'xlsx' : 'csv';
