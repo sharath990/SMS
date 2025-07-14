@@ -7,6 +7,7 @@ import { Toast } from 'primereact/toast';
 import { ConfirmDialog, confirmDialog } from 'primereact/confirmdialog';
 import AuthContext from '../context/AuthContext';
 import '../styles/AdminDashboard.css';
+import chaitanyaLogo from '../assets/image/chaitanya-logo.png';
 
 /**
  * AdminLayout component
@@ -160,9 +161,12 @@ const AdminLayout = () => {
       {/* Modern Top Navigation Bar */}
       <div className="layout-topbar shadow-2">
         <div className="layout-topbar-left">
-          <Link to="/admin" className="layout-topbar-logo flex flex-column align-items-start" style={{ textDecoration: 'none' }}>
-            <span className="font-bold text-xl text-900">ChaitanyaConnect</span>
-            <span className="text-xs text-500">Parent Messaging Platform</span>
+          <Link to="/admin" className="layout-topbar-logo flex align-items-center" style={{ textDecoration: 'none' }}>
+            <img src={chaitanyaLogo} alt="Chaitanya Logo" style={{ height: '2.5rem', width: '2.5rem', marginRight: '0.75rem', objectFit: 'contain' }} />
+            <div className="flex flex-column align-items-start">
+              <span className="font-bold text-xl" style={{ color: '#4b5563' }}>ChaitanyaConnect</span>
+              <span className="text-xs" style={{ color: '#4b5563' }}>Parent Messaging Platform</span>
+            </div>
           </Link>
           <Button
             icon="pi pi-bars"
